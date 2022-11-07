@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+	<url>
+	<loc>http://staticsharp.github.io/Index_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Index_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Index_Ru.html"/>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Components_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Components_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Components_Ru.html"/>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Components/MaterialDesignIconsComponent_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Components/MaterialDesignIconsComponent_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Components/MaterialDesignIconsComponent_Ru.html"/>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Components/ParagraphComponent_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Components/ParagraphComponent_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Components/ParagraphComponent_Ru.html"/>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Components/ScrollLayoutComponent_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Components/ScrollLayoutComponent_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Components/ScrollLayoutComponent_Ru.html"/>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Components/VideoPlayer_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Components/VideoPlayer_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Components/VideoPlayer_Ru.html"/>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Customization_En.html</loc>
+	</url>
+	<url>
+	<loc>http://staticsharp.github.io/Customization/HowToCreateNewComponent_En.html</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Customization/HowToCreateNewComponent_En.html"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Customization/HowToCreateNewComponent_Ru.html"/>
+	</url>
+</urlset>
