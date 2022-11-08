@@ -24,6 +24,9 @@
     }
     return pageLanguages[0]
 }
-window.location.replace(matchLanguage(["en","ru"]))</script>
+var extension = (window.location.protocol=="file:") ? ".html" : ""
+alert(window.location.protocol)
+alert(extension)
+window.location.replace(matchLanguage(["en","ru"]) + extension)</script>
   </body>
 </html>
