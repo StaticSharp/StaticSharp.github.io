@@ -1,0 +1,3750 @@
+<!doctype html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0"><title>Components</title><script>function ToCssSize(value) {
+    return (value!=undefined) ? value + "px" : ""
+}
+
+function DepthToStyle(element) {
+    return new Reaction(() => {
+        element.style.zIndex = element.Depth
+    })
+}
+
+
+function XToStyle(element) {
+    return new Reaction(() => {
+        element.style.left = ToCssSize(element.X)
+    })
+}
+function YToStyle(element) {
+    return new Reaction(() => {
+        element.style.top = ToCssSize(element.Y)
+    })
+}
+
+function WidthToStyle(element) {
+    return new Reaction(() => {
+        element.style.width = ToCssSize(element.Width)
+    })
+}
+
+function HeightToStyle(element) {
+    return new Reaction(() => {
+        element.style.height = ToCssSize(element.Height)
+    })
+}
+
+
+
+function Try(func, defaultValue, exceptions) {
+    //console.log("try", func, defaultValue, exceptions)
+    try {
+        return func()
+    } catch (e) {
+        console.warn(e)
+        if (exceptions == undefined) {
+            return defaultValue
+        } else {
+            for (let i of exceptions) {
+                if (e instanceof i) {
+                    return defaultValue
+                }
+            }
+            throw e
+        }
+    }
+}
+function IsNaNOrNull(value) {
+    if (value === null) return true
+    return isNaN(value)
+}
+
+function Max() {
+    let result = undefined
+    for (let i of arguments) {
+        if (IsNaNOrNull(i)) continue;
+        if (result === undefined) {
+            result = i
+        } else {
+            result = Math.max(result, i)
+        }
+    }
+    return result
+}
+
+function Min() {
+    let result = undefined
+    for (let i of arguments) {
+        if (IsNaNOrNull(i)) continue;
+        if (result === undefined) {
+            result = i
+        } else {
+            result = Math.min(result, i)
+        }
+    }
+    return result
+}
+
+function Clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value))
+}
+
+function Sum() {
+    let resultValid = false
+    let result = 0
+    for (let i of arguments) {
+        if (IsNaNOrNull(i)) continue;
+        resultValid = true
+        result += i
+    }
+    return resultValid ? result : undefined
+}
+
+
+function First() {
+    for (let i of arguments) {
+        if (i === undefined) continue;
+        if (isNaN(i)) continue;
+        if (i === null) continue;
+        return i
+    }
+    return undefined
+}
+
+
+const SpaceTagName = "WS"
+const WordTagName = "W"
+function _deleteScript() {
+    let script = document.currentScript
+    let parent = script.parentElement
+    parent.removeChild(script)
+    return parent
+}
+
+var currentParent = undefined
+
+function Constructor() {
+    var element = _deleteScript()
+    element.Parent = currentParent
+    currentParent = element
+    
+    for (let i of arguments) {
+        i(element)
+    }
+
+    /*if (element.parentElement) {
+        if (element.parentElement.tagName == "OVERLAY") {
+            let overlay = element.parentElement
+            let parent = overlay.parentElement
+            //parent.removeChild(overlay)
+            //document.body.appendChild(element)
+            element.Parent = parent
+            parent.Overlay = element
+        } else {
+            element.Parent = element.parentElement
+        }
+    }*/
+
+    return element;
+}
+
+function Pop() {
+    let element = _deleteScript()
+    if (element.Parent) {
+        currentParent = element.Parent
+    } else {
+        delete currentParent
+    }
+}
+
+
+function CamelToKebab(value) {
+    return value.replace(
+        /[A-Z]+(?![a-z])|[A-Z]/g,
+        (substring, offset) => (offset ? "-" : "") + substring.toLowerCase()
+    )
+}
+
+
+function Create(parent, ...constructors) {
+    let primary = constructors[0]
+    let tagName = CamelToKebab(primary.name)
+    
+    let element = document.createElement(tagName)
+    parent.appendChild(element)
+    element.Parent = parent
+    for (let i of constructors) {
+        i(element)
+    }
+    return element;
+    
+}
+
+
+
+
+
+function ReactionBase(func) {
+    let _this = this
+
+    _this.triggeringProperties = new Set()
+    _this.func = func
+    
+    _this.addTriggeringProperty = function (property) {
+        _this.triggeringProperties.add(property)
+        property.dependentReactions.add(_this)
+    }
+
+    _this.unsubscribeFromTriggeringProperties = function () {
+        if (_this.triggeringProperties.size == 0) return
+
+        for (let triggeringProperty of _this.triggeringProperties) {
+            triggeringProperty.dependentReactions.delete(_this)
+        }
+        _this.triggeringProperties.clear()
+    }
+
+    _this.execute = function () {
+        let oldReaction = Reaction.current
+        Reaction.current = _this
+        _this.unsubscribeFromTriggeringProperties()
+
+        try {
+            let result = _this.func()
+            return result
+        }
+        finally {
+            Reaction.current = oldReaction
+        }
+    }
+
+
+    //_this.makeDirty = abstract function
+    _this.dirtImmune = false
+}
+
+
+function Reaction(func) {
+    let _this = this
+
+    ReactionBase.call(_this, func)
+    
+    _this.makeDirty = function () {
+        if (_this.dirtImmune)
+            return;
+        Reaction.deferred.add(_this)
+    }
+
+    if (Reaction.deferred) {
+        Reaction.deferred.add(_this)
+    } else {
+        let d = Reaction.beginDeferred()
+
+        try {
+            _this.execute()
+        } catch (e) {
+            console.warn(e)
+        }
+        
+        d.end()
+    }
+}
+
+Reaction.prototype = Object.create(ReactionBase.prototype)
+Reaction.prototype.constructor = Reaction
+
+Reaction.beginDeferred = function () {
+    if (!Reaction.deferred) {
+        Reaction.deferred = new Set()
+        return {
+            end: function () {
+
+                let maxIterations = 64;
+                 
+                while (Reaction.deferred.size > 0 & maxIterations > 0) {
+                    //console.log("Reaction.deferred.end", Reaction.deferred.size)
+                    let d = Array.from(Reaction.deferred)
+                    for (let reaction of d) {
+                        Reaction.deferred.delete(reaction)
+                        try {
+                            reaction.execute()
+                        } catch (e) {
+                            console.warn(e)
+                        }
+                        
+                    }
+                    maxIterations--
+                    //d.forEach(x => x.execute())
+                    //Reaction.deferred.clear()
+                }
+
+                if (maxIterations == 0) {
+                    console.error("Recursive property binding", Reaction.deferred)
+                }
+
+                //let l = Reaction.deferred;
+                Reaction.deferred = undefined
+                //l.forEach(x => x.execute())
+
+                
+
+            }
+        };
+    }
+    return {
+        end: function () { }
+    };
+}
+
+
+Reaction.beginNonReactive = function () {
+    if (!Reaction.current) {
+        let oldCurrent = Reaction.current
+        Reaction.current = undefined
+        return {
+            end: function () {
+                Reaction.current = oldCurrent
+            }
+        };
+    }
+    return {
+        end: function () { }
+    };
+}
+
+
+
+function Binding(func, onBecameDirty) {
+    //console.log("function Binding(func, onChange)", onChange)
+    let _this = this
+
+    ReactionBase.call(_this, func)
+
+    _this.dirty = true
+    //_this.onBecameDirty = onBecameDirty
+
+    
+    _this.makeDirty = function () {
+        if (_this.dirty)
+            return
+
+        _this.dirty = true        
+        onBecameDirty()
+    }
+}
+Binding.prototype = Object.create(ReactionBase.prototype);
+Binding.prototype.constructor = Binding;
+
+
+
+function Property(value) {
+
+    let _this = this
+    _this.name = ""
+    _this.parent = null
+
+    _this.dependentReactions = new Set()
+    _this.binding = undefined
+
+    _this.makeDirty = function () {
+        _this.binding.makeDirty()
+    }
+    
+    _this.onBindingBecameDirty = function () {
+        _this.makeDependentReactionsDirty()
+    }
+
+    _this.makeDependentReactionsDirty = function () {
+        /********************************************
+         a deferred context is reqired here in case
+         makeDirty() is called from a callback
+         
+         window.setTimeout(() => {
+            element.Reactive.SomeProperty.makeDirty();
+        },50)
+
+         *******************************************/
+        var d = Reaction.beginDeferred() 
+        _this.dependentReactions.forEach(x => x.makeDirty())
+        d.end()
+    }
+
+    /*_this.dependsOn = function (property) {
+        if (!_this.binding)
+            return false
+        _this.getValue()
+        for (let i of _this.binding.dependencies) {
+            if (i == property)
+                return true
+        }
+        for (let i of _this.binding.dependencies) {
+            if (i.dependsOn(property))
+                return true
+        }
+        return false
+    }
+
+    _this.getRecursiveDependencies = function () {
+        let result = new Set();
+        if (!_this.binding)
+            return result
+        _this.getValue()
+        
+        _this._collectRecursiveDependencies(result)
+        return result
+    }
+
+    _this._collectRecursiveDependencies = function (set) {
+        for (let i of _this.binding.dependencies) {
+            set.add(i)
+            i._collectRecursiveDependencies(set)
+        }
+    }*/
+    _this.executionInProgress = false
+    
+    _this.getValue = function() {
+        //console.log("getValue")
+        
+        //console.log("getValue", _this.name, _this.binding?.dirty)
+
+        if (Reaction.current) {
+            Reaction.current.addTriggeringProperty(_this)
+        }
+
+        if (_this.binding) { //wechat (this.binding?.dirty) not supported
+            if (_this.binding.dirty) {
+                if (_this.executionInProgress) {
+
+
+                    if (_this.reactionsWhoReceivedOldValue == undefined) {
+                        _this.reactionsWhoReceivedOldValue = new Set()
+                    }
+                    _this.reactionsWhoReceivedOldValue.add(Reaction.current)                    
+
+                    //console.log("getValue", _this.name, "executionInProgress")
+
+                    return _this.value
+                }
+                try {
+                    var oldValue = _this.value
+                    try {
+                        _this.executionInProgress = true
+                        _this.value = _this.binding.execute()
+                        
+                    } finally {
+                        _this.executionInProgress = false
+
+                        _this.binding.dirty = false
+                        //console.log("execute finished ", _this.object, _this.name, oldValue, "->", _this.value)
+
+
+                        if (_this.reactionsWhoReceivedOldValue) {
+
+                            if (_this.value !== oldValue) {
+
+                                //var reactionsToPrint = Array.from(_this.reactionsWhoReceivedOldValue).map(x => x.func.name)
+                                //console.log("ReactionsWhoReceivedOldValue", reactionsToPrint)
+
+                                let d = Reaction.beginDeferred()
+                                _this.reactionsWhoReceivedOldValue.forEach(x => x.makeDirty())
+                                d.end()
+                            }
+
+                            _this.reactionsWhoReceivedOldValue = undefined                            
+
+                        }
+                        
+                            
+                    }
+
+                } catch (e) {
+
+
+                    
+
+                    console.error(e)
+                }                
+            }
+        }
+
+
+
+        return _this.value
+    }
+
+
+    /*_this.setValueKeepBinding = function (value) {
+
+        if (_this.value === value)
+            return
+        _this.value = value
+        var d = Reaction.beginDeferred()
+        _this.makeDependentReactionsDirty()
+        d.end()
+        if (_this.binding) {
+            _this.binding.dirty = false
+        }
+    }*/
+
+    _this.setValue = function(value) {
+        //console.log("setValue " + value + " " + _this.onChanged.size)
+        if (typeof value === 'function') {
+
+            if (value.isBindingConstructor) {
+                value = value(_this)
+            }
+
+            if (_this.binding) {
+                if (_this.binding.func === value) {
+                    return
+                }
+                _this.binding.unsubscribeFromTriggeringProperties()
+                //console.log("change binding from", _this.binding.func, "to", value)
+            }
+            
+            _this.binding = new Binding(value, _this.onBindingBecameDirty)
+
+
+        } else {
+            //console.log("value assigned", _this.value, "->", value, "will notify ", _this.onChanged.size)
+            if (_this.binding) {
+                _this.binding.unsubscribeFromTriggeringProperties()
+                _this.binding = undefined
+            }
+
+            if (_this.value === value)
+                return
+
+            _this.value = value
+        }
+
+        var d = Reaction.beginDeferred()
+        _this.makeDependentReactionsDirty()
+        d.end()
+    }
+
+
+
+    _this.attach = function(object, name) {
+        //let property = this
+        _this.name = name
+        _this.object = object
+        let accessorDescriptor = {
+            get: function () {
+                return _this.getValue()
+            },
+            set: function (value) {
+                _this.setValue(value)
+
+            }
+        }
+        Object.defineProperty(object, name, accessorDescriptor);
+        return _this
+    }    
+    _this.setValue(value)
+}
+
+
+
+Property.exists = function (target, name) {
+    var propertyDescriptor = !!Object.getOwnPropertyDescriptor(target, name)
+    var propertyFieldExists = target.hasOwnProperty("__" + name)
+    return propertyDescriptor && propertyFieldExists
+}
+
+Property.nameAvailable = function (target, name) {
+    if (Object.getOwnPropertyDescriptor(target, name))
+        return false
+    if (target.hasOwnProperty(name))
+        return false
+    return true
+}
+
+Object.defineProperty(Object.prototype, "Reactive", {
+    get: function () {
+        return new Proxy(
+            this,
+            {
+                get(target, name, receiver) {
+                    //console.log(`get target:${JSON.stringify(target)} name: ${name}`)
+                    return target["__" + name]
+                    //return Reflect.get(...arguments);
+                },
+                set: function (target, name, value, receiver) {
+                    //console.log("set",target,name,value)
+                    
+                    if (target.hasOwnProperty("__" + name)) {
+                        //console.log("asigning existing property", name)
+                        const propertyField = target["__" + name]
+                        propertyField.setValue(value)
+                    } else {
+                        //console.log("creating new property", name)
+                        target["__" + name] = new Property(value).attach(target,name)
+                    }
+                }
+            }
+            )
+    },
+    set: function (obj) {
+        let proxy = this.Reactive
+        //console.log(proxy)
+
+        let d = Reaction.beginDeferred()
+        //отложенное выполнение реакций не нужно при создании свойств
+        //тут оно используется т.к. следующий код можнт не только создать свойство
+        //но и присвоить значение существующему свойству
+        if (obj instanceof Object) {
+            for (const [key, value] of Object.entries(obj)) {
+                proxy[key] = value                
+            }
+        }
+        if (d) d.end()
+
+
+    }
+});
+
+
+function OnChanged(getter, action) {
+    let previous = undefined
+    return new Reaction(() => {
+        let current = getter()
+        if (current != previous) {
+            let n = Reaction.beginNonReactive()
+            action(previous, current)
+            n.end()
+            previous = current
+        }
+    })
+}
+
+
+
+
+function OnTruthify(predicate, action) {
+    
+    let previous = undefined
+    return new Reaction(() => {        
+        let current = predicate()
+        if (current === true && (!previous === true)) {
+            let n = Reaction.beginNonReactive()
+            action()            
+            n.end()
+        }
+        previous = current
+    })
+}
+
+function PropertyTest() {
+
+    console.group("PropertyTest")
+
+    let root = {
+        Field: 7
+
+    }
+
+    console.assert( Property.nameAvailable(root, "A") == true)
+    console.assert( Property.nameAvailable(root, "Field") == false)
+
+
+    console.assert( Property.exists(root, "A") == false)
+
+    root.Reactive.A = 0
+
+    console.assert( Property.exists(root, "A") == true)
+    console.assert( Property.nameAvailable(root, "A") == false)
+
+    console.assert(root.A == 0)
+    root.Reactive.A = 8
+    console.assert(root.A == 8)
+
+
+    root.Reactive.B = () => root.A * 2
+    console.assert( root.B == 16)
+
+    root.A = 10
+    console.assert( root.B == 20)
+
+    
+
+    root.Reactive = {
+        C: 7,
+        D: () => root.C,
+        //E: () => root.B*4,
+    }
+
+    console.assert( Property.exists(root, "C") == true)
+    console.assert( Property.exists(root, "D") == true)
+
+    console.assert(root.D == root.C)
+    //console.assert(root.E == root.B*4)
+
+    root.Reactive.B = () => root.A * 3
+    //console.assert(root.B == 30)
+    //console.assert(root.E == root.A * 3 * 4)
+
+    /*root.Reactive.B = 10
+    console.assert(root.E == 40)
+
+    root.Reactive.B = () => root.A * 3
+    console.assert(root.E == 10 * 3 * 4)*/
+
+
+    new Reaction(() => {
+        root.Field = root.C
+    })
+    console.assert(root.Field == root.C)
+
+    let bReactionResult
+    new Reaction(() => {
+        bReactionResult = root.B
+    })
+    console.assert(bReactionResult == root.B)
+    console.group("root.A = 20")
+    root.A = 20
+    console.groupEnd()
+    console.assert(bReactionResult == root.B)
+
+
+    root.C = 9
+    console.assert(root.Field == root.C)
+    console.assert(root.D == root.C)
+
+
+    root.Reactive.D = ()=>root.C+1
+
+
+
+    console.groupEnd()
+}
+
+Object.defineProperty(Object.prototype, "Events", {
+    get: function () {
+
+        const prefix = "___"
+
+        return new Proxy(
+            this,
+            {
+                get(target, name, receiver) {
+                    return target[prefix + name]
+                },
+                set: function (target, name, value, receiver) {
+                    name = name.toLowerCase()
+
+                    function add(event) {
+                        target[prefix + name] = event
+                        target.addEventListener(name, event.handler, event)
+                    }
+
+                    if (target.hasOwnProperty(prefix + name)) {
+                        let event = target[prefix + name]
+                        if (event !== undefined)
+                            target.removeEventListener(name, event.handler)
+                    }
+
+                    //console.log("set", target, name, typeof (value), value)
+
+                    if (value !== undefined) {
+
+                        if (typeof (value) === "function") {
+                            add({
+                                handler: value,
+                                capture: false,
+                            })
+                        } else if (typeof (value) === "object") {
+                            if (typeof (value.handler) !== "function") {
+                                console.error("If the value is an object, it must have a 'handler' field of type 'function'")
+                            }
+                            value.capture = false
+                            add(value)
+                        } else {
+                            console.warn(`Type '${typeof(value)}' is invalid for event. To remove event handler assign 'undefined'`)
+                        }
+                    }
+                }
+            }
+        )
+    }/*,
+    set: function (obj) {
+    }*/
+});
+
+
+
+
+/*function CreatePage() {
+    let result = CreateInplace(document.body,Page)
+    result.Content = function (parent) {
+        let result = Create(ScrollLayout)
+        result.Parent = parent
+        result.Content = function (parent) {
+            let result = Create(parent, Column)
+            return result
+        }(result)
+
+        result.AddChild()
+
+        return result
+    }(result)
+
+    Create(undefined, Page, (parent) => {
+        parent.TopBar = Create(parent, Paragraph)
+            .AddChild((parent) => {
+
+            })
+
+        parent.Content = function(parent){
+            let result = Create(parent, ScrollLayout)
+            result.Content = function (parent) {
+                let result = Create(parent, Column)
+                return result
+            }(result)
+        }()
+
+
+        parent.Content = Create(parent, ScrollLayout).Modify((p) => {
+            p.Content =
+                Create(p, Column, (p) => {
+
+                })
+        })
+
+        parent.AddChild(
+            Create(parent, ScrollLayout, (parent) => {
+
+            })
+        )
+    })
+}*/
+
+
+
+
+
+
+
+
+
+function GetParentElementByPredicate(firstParentToCompare, predicate) {
+    var p = firstParentToCompare
+    while (p != undefined) {
+        if (predicate(p)) {
+            
+            return p
+        } else {
+            /*if (p.tagName == "SCROLLABLE") {
+                console.error("SCROLLABLE", p.parentElement)
+            }*/
+            p = p.parentElement
+        }
+    }
+    return undefined
+}
+
+
+
+function Hierarchical(element) {
+    element.isHierarchical = true
+
+    
+
+    element.Reactive = {
+
+
+        IsRoot: () => element.Parent == undefined,
+
+        NestingDepth: () => (element.IsRoot || element.overlaySign==1) ? 0 : (element.Parent.NestingDepth + 1),
+
+        Root: () => element.Parent.Root,
+        /*Parent: undefined() => {
+
+            let v = GetParentElementByPredicate(element.parentElement, x => x.isHierarchical)
+
+            return v
+        },*/
+        ParentBlock: () => GetParentElementByPredicate(element.Parent, x => x.isBlock),
+        FirstChild: undefined,
+        LastChild: undefined,
+        NextSibling: undefined,
+    }
+
+    if (element.Parent) {
+        if (element.dataset.property) {
+            element.Parent[element.dataset.property] = element
+
+        }
+        if (element.dataset.child!=undefined) {
+            
+            if (!element.Parent.FirstChild) {
+                element.Parent.FirstChild = element
+                element.Parent.LastChild = element
+            } else {
+                element.Parent.LastChild.NextSibling = element
+                element.Parent.LastChild = element
+            }
+        }
+        
+    }
+
+    
+
+
+
+    element.Children = {}
+    element.Children[Symbol.iterator] = function* () {
+        var i = element.FirstChild
+        while (i != undefined) {
+            yield i
+            i = i.NextSibling
+        }
+    };
+
+    element.Sibling = function (id) {
+        return element.Parent.Child(id)        
+    }
+
+    element.Child = function (id) {
+        let i = element.FirstChild
+        
+        if (typeof id === "number") { 
+            for (let i = 0; i < id; i++) {                
+                i = i.NextSibling
+                console.warn(i)
+            }
+
+        } else {
+            while (i) {
+                if (i.id == id) {
+                    return i
+                }
+                i = i.NextSibling
+            }
+        }
+        //console.warn(`element ${element.tagName} do not have child "${id}"`)
+        return i
+    }
+
+
+    
+ 
+
+}
+
+
+function BaseModifier(element) {
+
+    Hierarchical(element)
+
+    element.isModifier = true
+
+    element.Reactive = {
+        Hover: false,
+        Selectable: undefined,
+
+        BackgroundColor: undefined,
+        HierarchyBackgroundColor: () => element.BackgroundColor || element.Parent.HierarchyBackgroundColor,
+
+        ForegroundColor: () => {   
+            return element.HierarchyBackgroundColor.contrastColor()
+        },
+        HierarchyForegroundColor: () => element.ForegroundColor || element.Parent.HierarchyForegroundColor,
+
+
+        FontSize: undefined,
+        HierarchyFontSize: () => element.FontSize || element.Parent.HierarchyFontSize,
+
+        Radius: undefined,
+        RadiusTopLeft: () => element.Radius,
+        RadiusTopRight: () => element.Radius,
+        RadiusBottomLeft: () => element.Radius,
+        RadiusBottomRight: () => element.Radius,
+
+        Visibility: 1
+    }
+
+    new Reaction(() => {
+        let visibility = element.Visibility
+        if (visibility == 0) {
+            element.style.visibility = "hidden"
+            element.style.opacity = ""
+        } else if (visibility == 1) {
+            element.style.visibility = ""
+            element.style.opacity = ""
+        } else {
+            element.style.opacity = visibility
+            element.style.visibility = ""
+        }        
+    })
+
+
+    new Reaction(() => {
+        element.style.borderTopLeftRadius       = ToCssSize(element.RadiusTopLeft)
+        element.style.borderTopRightRadius      = ToCssSize(element.RadiusTopRight)
+        element.style.borderBottomLeftRadius    = ToCssSize(element.RadiusBottomLeft)
+        element.style.borderBottomRightRadius   = ToCssSize(element.RadiusBottomRight)
+    })
+
+
+
+    new Reaction(() => {
+        let selectable = element.Selectable
+        if (selectable!=undefined)
+            element.style.userSelect = element.Selectable ? "text" : "none"
+        else
+            element.style.userSelect = ""
+    })
+    
+
+    new Reaction(() => {
+        if (element.BackgroundColor) {
+            element.style.backgroundColor = element.BackgroundColor
+        }
+    })
+
+    new Reaction(() => {
+        if (element.ForegroundColor) {
+            element.style.color = element.ForegroundColor
+        }
+    })
+}
+
+
+/*function CalcLeft(container, child) {
+    if (container.PaddingLeft != undefined) {
+        return Math.max(container.PaddingLeft, First(child.MarginLeft,0))
+    }
+    if (container.MarginLeft == undefined) {
+        return First(child.MarginLeft,0)
+    }
+    return Math.max(child.MarginLeft - container.MarginLeft, 0)
+}*/
+
+function CalcOffset(container, child, sideName) {
+    let paddingName = "Padding" + sideName
+    let marginName = "Margin" + sideName
+    if (container[paddingName] != undefined) {
+        return Math.max(container[paddingName], First(child[marginName], 0))
+    }
+    if (container[marginName] == undefined) {
+        return First(child[marginName], 0)
+    }
+    if (child[marginName] == undefined) {
+        return 0
+    }
+    return Math.max(child[marginName] - container[marginName], 0)
+}
+
+
+function Block(element) {
+    
+
+    BaseModifier(element)
+
+    element.isBlock = true
+
+
+
+    element.Reactive = {
+        
+        Depth: 0,
+
+        PaddingLeft: undefined,
+        PaddingTop: undefined,
+        PaddingRight: undefined,
+        PaddingBottom: undefined,
+
+        MarginLeft: undefined,
+        MarginTop: undefined,
+        MarginRight: undefined,
+        MarginBottom: undefined,
+
+        LayoutX: undefined,
+        LayoutY: undefined,
+        LayoutWidth: undefined,
+        LayoutHeight: undefined,
+
+        
+
+        InternalWidth: undefined,
+        InternalHeight: undefined,
+
+
+        X: () => First(element.LayoutX,0),
+        Y: () => First(element.LayoutY,0),
+
+        AbsoluteX: () => element.IsRoot ? 0 : Sum(element.Parent.AbsoluteX, element.Parent.ScrollXActual, element.X),
+        AbsoluteY: () => element.IsRoot ? 0 : Sum(element.Parent.AbsoluteY, -element.Parent.ScrollYActual, element.Y),
+
+        Width: () => First(element.LayoutWidth, element.InternalWidth),
+        Height: () => First(element.LayoutHeight, element.InternalHeight),
+
+        
+        
+    }
+
+    DepthToStyle(element)
+
+
+    XToStyle(element);
+    YToStyle(element);
+    WidthToStyle(element)
+    HeightToStyle(element)
+
+    
+
+    
+
+
+
+    new Reaction(() => {
+        element.style.fontSize = ToCssSize(element.FontSize)
+    })
+
+    element.Events.MouseEnter = () => element.Hover = true
+    element.Events.MouseLeave = () => element.Hover = false
+
+
+    
+
+
+}
+
+
+function Page(element) {
+    element.isRoot = true
+    let loadingDeffered = Reaction.beginDeferred()
+
+    Block(element)
+
+
+    function getWindowWidth() {
+        return document.documentElement.clientWidth //window.innerWidth
+    }
+    function getWindowHeight() {
+        return window.innerHeight // document.documentElement.clientHeight
+    }
+
+
+    let animationFrame = 0
+    window.Reactive = {
+        Root: element,
+
+        AnimationFrame: () => {
+            animationFrame++
+            window.requestAnimationFrame(() => {
+                window.Reactive.AnimationFrame.makeDirty()
+            });
+            return animationFrame
+        },
+
+        UserInteracted: false,
+        DevicePixelRatio: window.devicePixelRatio,
+        Touch: false,
+    }
+
+    let touchMedia = window.matchMedia("(pointer: coarse)")
+    window.Touch = touchMedia.matches
+    touchMedia.onchange = (e) => {
+        window.Touch = e.matches
+    }
+
+    function createDevicePixelRatioCallback(func) {
+        let matchMedia = window.matchMedia(`screen and (resolution: ${window.devicePixelRatio}dppx)`)
+        matchMedia.addEventListener(
+            "change",
+            () => {
+                func()
+                createDevicePixelRatioCallback(func)
+            },
+            { once: true }
+        );
+    }
+    createDevicePixelRatioCallback(() => window.DevicePixelRatio = window.devicePixelRatio)
+
+
+
+    element.Reactive = {
+        Root: element,        
+
+        LayoutWidth: getWindowWidth(),
+        LayoutHeight: getWindowHeight(),
+
+        FontSize: 16,
+        HierarchyFontSize: () => element.FontSize,
+
+        BackgroundColor: new Color("#fff"),
+
+        HierarchyBackgroundColor: () => element.BackgroundColor,
+        HierarchyForegroundColor: () => element.ForegroundColor,
+
+    }
+
+
+
+    /*window.ontouchend = () => {
+        console.log("ontouchend")
+        element.UserInteracted = true
+    }*/
+    window.onmousedown = () => {
+        window.UserInteracted = true
+    }
+
+
+
+
+    window.onresize = function (event) {
+        //let startTime = performance.now()
+        let d = Reaction.beginDeferred()
+        element.LayoutWidth = getWindowWidth()
+        element.LayoutHeight = getWindowHeight()
+        d.end()
+        //console.log("resize", performance.now() - startTime)
+    }
+
+
+    
+    let loadEventsToWait = 2
+    function onLoadEvent() {
+        loadEventsToWait--
+        if (loadEventsToWait == 0) {
+
+            console.log("-------------Reactions------------", performance.now());
+            loadingDeffered.end()
+            console.log("-------------Reactions-done-------", performance.now());
+            
+
+            document.body.style.visibility = "visible"
+            document.body.style.opacity = 1
+
+            if (location.hash !== "") {
+                location.href = location.hash
+            }
+
+
+
+            /*let d = Reaction.beginDeferred()
+            element.WindowWidth = getWindowWidth()
+            element.WindowHeight = getWindowHeight()
+            d.end()*/
+        }
+    }
+
+    document.fonts.ready
+        .then(() => {
+            console.log("-------------Fonts ready--", performance.now());
+            onLoadEvent()            
+        })
+
+    window.addEventListener("DOMContentLoaded", function (event) {
+        console.log("------DOMContentLoaded--", performance.now());
+        onLoadEvent()
+    })
+
+
+
+    
+
+}
+
+
+
+
+    /*var template = document.createElement('div');
+    template.style.display = "contents"
+    element.appendChild(template);
+    new Reaction(() => {
+        template.innerHTML = element.Html;
+
+    })*/
+
+    //element.insertAdjacentHTML('beforeend', `<svg width="800" viewBox="0 0 800 600" x="2 ${200}"><circle cx="500" cy="500" cx="500"r="20"></circle></svg>`);
+    //console.log(`265 && element.ContentWidth`)
+
+
+
+    /*element.Reactive =
+    {
+        A: () => {
+            console.log("Get A")
+            return Max(element.B, element.E)
+        },
+
+        //C: () => { Max(element.E, element.A) },
+
+        E: () => {
+            console.log("Get E")
+            return element.A
+        },
+
+        B: 6
+    }
+
+    //let d = Reaction.beginDeferred()
+
+    new Reaction(() => {
+        console.group("Reaction A:")
+        console.log("element.Reactive.E.binding.dirty:", element.Reactive.E.binding.dirty)
+        console.log("element.Reactive.A.binding.dirty:", element.Reactive.A.binding.dirty)
+
+        console.log("Reaction A:", element.A)
+
+        console.groupEnd()
+    })
+
+    //d.end()
+
+*/
+    
+
+
+    /*new Reaction(() => {
+        console.log("Reaction E:", element.E)
+    })
+
+    console.log("element.Reactive.E.binding.dirty:", element.Reactive.E.binding.dirty)
+    console.log("element.Reactive.A.binding.dirty:", element.Reactive.A.binding.dirty)*/
+
+    
+
+
+
+
+    //PropertyTest()
+
+    
+
+    
+
+    /*let previous = this.Content
+    let onChanged = function (previous, current) {
+        if (current) {
+            this.Content.InnerWidth =
+                () => Math.min(this.Content.Width, parameters.ContentWidth)
+        }
+    }
+    new Reaction(() => {
+        let current = this.Content
+        if (current != previous) {
+            onChanged(previous, current)
+            previous = current
+        }
+    })*/
+
+
+    /*new Reaction(() => {
+
+        if (this.Content)
+            console.log("Content.PaddingLeft changed", this.Content.PaddingLeft)
+    })*/
+
+
+
+ 
+
+    //console.log(parameters.ContentWidth)
+
+
+    /*new Property().attach(element, "Content")
+
+    new Property(window.innerWidth).attach(window, "InnerWidth")
+    new Property(window.innerHeight).attach(window, "InnerHeight")
+
+
+    const LeftBarSize = 200
+    const RightBarSize = 50
+
+    new Reaction(() => {
+        if (element.Content) {
+
+            element.Content.style.left = LeftBarSize+"px"
+
+            element.Content.MaxInnerWidth = parameters.ContentWidth
+            element.Content.Width = window.InnerWidth - LeftBarSize - RightBarSize
+        }
+    })
+
+
+    
+
+    */
+
+
+    /*element.css({
+        margin: "0",
+    })
+    let leftBarWidth = 0;
+    let rightBarWidth = 0;
+
+    //contentWidth = 800;
+
+    element.onAnchorsChanged = []
+    element.anchors = {}
+    var leftBar = element.querySelector("#leftBar");
+    var rightBar = document.getElementById("#rightBar");
+
+    leftBarWidth = leftBar == null ? 0 : leftBar.width;
+    rightBarWidth = rightBar == null ? 0 : rightBar.width;
+
+    function updateHeaderWidth() {
+        let left = element.anchors.textLeft;
+        let right = element.anchors.textRight;
+        header.style.marginLeft = left + "px";
+        header.style.width = right - left + "px";
+    }
+
+
+
+    function updateAnchors() {
+        
+
+        var leftBar = element.querySelector("#leftBar");
+        var rightBar = element.querySelector("#rightBar");
+        leftBarWidth = leftBar == null ? 0 : leftBar.offsetWidth;
+        rightBarWidth = rightBar == null ? 0 : rightBar.offsetWidth;
+        const textMargin = 12;
+        let width = window.innerWidth;
+        let wideAnchorsCollapsed = width < (leftBarWidth + rightBarWidth + contentWidth);
+        element.anchors.wideLeft = wideAnchorsCollapsed ? 0 : leftBarWidth;
+        element.anchors.wideRight = wideAnchorsCollapsed ? width : width - rightBarWidth;
+        element.anchors.wideAnchorsCollapsed = wideAnchorsCollapsed;
+        let fillAnchorsCollapsed = width < contentWidth;
+        let center = 0.5 * (element.anchors.wideLeft + element.anchors.wideRight);
+        element.anchors.fillLeft = fillAnchorsCollapsed ? 0 : (center - 0.5 * contentWidth);
+        element.anchors.fillRight = fillAnchorsCollapsed ? width : (center + 0.5 * contentWidth);
+
+        element.anchors.textLeft = Math.max(element.anchors.fillLeft, element.anchors.wideLeft + textMargin);
+        element.anchors.textRight = Math.min(element.anchors.fillRight, element.anchors.wideRight - textMargin);
+
+        element.onAnchorsChanged.map(x => x());
+        if (wideAnchorsCollapsed) {
+            document.getElementById("rightBar").style.visibility = "hidden";
+            document.getElementById("leftBar").style.visibility = "hidden";
+        } else {
+            document.getElementById("rightBar").style.visibility = "";
+            document.getElementById("leftBar").style.visibility = "";
+        }
+
+    }
+
+    DetectSwipe(element, swiper);
+
+    function swiper(direction, swipe, touchEnd, event) {
+        let getTranslate = (offsetWidth) => {
+            var value = direction == 'left' || direction == 'right' ? swipe.swipeX : swipe.swipeY;
+            let percent = toPercents(Math.abs(value), offsetWidth);
+            let translate = percent > 0 ? percent : 0;
+            return translate;
+        }
+
+        let showChildren = (element) => Array.from(element.children).forEach(x => {
+            x.css({ visibility: "visible" });
+        });
+
+        if (direction == 'left') {
+            let allSwiped = event.path.map(x => x.scrollLeft == null ? true : x.scrollLeft === x.scrollWidth - x.clientWidth).every(x => x == true);
+            if (allSwiped) {
+                let startY = swipe.clientStartY;
+                let touchedElementSpace = menusHitBoxes.find(x => x.top <= startY && x.bottom >= startY);
+                if (touchedElementSpace == null) { return; }
+                let selectedMenu = touchedElementSpace.element
+                if (selectedMenu.position == 'minimizedRight') {
+                    showChildren(selectedMenu);
+                    let translate = 100 - getTranslate(selectedMenu.offsetWidth);
+                    selectedMenu.css({ transform: `translateX(clamp(0%, ${translate}%, 70%))` });
+                }
+            }
+        } else {
+            //menusHitBoxes.forEach(x => x.element.css({ transform: 'translateX(70%)' }));
+        }
+    }
+
+    menusHitBoxes = [];
+
+
+    window.addEventListener("resize", updateAnchors);
+    document.addEventListener("DOMContentLoaded", function() {
+
+        element.style.display = "";
+        rightBarWidth = document.getElementById("rightBar").scrollWidth;
+        leftBarWidth = document.getElementById("leftBar").scrollWidth;
+        header = document.getElementById("Header");
+        if (header != null) {
+            element.onAnchorsChanged.push(updateHeaderWidth);
+        }
+        updateAnchors()
+        var rightBar = document.getElementById('rightBar');
+        var children = Array.from(rightBar.children)
+        children.forEach(x => {
+            var rect = x.getBoundingClientRect();
+            let element = {
+                element: x,
+                top: rect.top,
+                bottom: rect.bottom
+            }
+            menusHitBoxes.push(element);
+        });
+    });*/
+
+
+
+var pageHash = "t!dcsctAYNTSYMJaKLcdZPtZ#n@KPIjkK)ppteSZ4t%W)N*3RC8k645V4DUMW5G!";
+
+
+
+
+
+
+
+
+/*console.log("fr ru_ru -> ", matchLanguage(["fr", "ru_ru"]))
+console.log("fr -> ", matchLanguage(["fr"]))
+
+console.log("en_ca en -> ", matchLanguage(["en_ca"]))
+console.log("en -> ", matchLanguage(["en"]))
+console.log("zh en-> ", matchLanguage(["zh","en"]))*/
+
+function Watch() {
+
+    const refreshIntervalMs = 500;
+    if (pageHash == undefined) return;
+
+    function CheckRefresh() {
+        fetch("/api/get_page_hash")
+            .then((response) => {
+                if (response.ok) {
+                    response.text().then((text) => {
+                        let changed = text !== pageHash
+                        if (changed) {
+                            console.info("Refreshing page...", pageHash, text);
+                            document.location.reload();
+                        } else {
+                            setTimeout(CheckRefresh, refreshIntervalMs);
+                        }
+                    })
+                } else {
+                    setTimeout(CheckRefresh, refreshIntervalMs);
+                }
+                
+            })            
+            .catch(err => {
+                setTimeout(CheckRefresh, refreshIntervalMs);
+            })
+    }
+    setTimeout(CheckRefresh, refreshIntervalMs);
+}
+
+console.log("PageHash:", pageHash, performance.now())
+Watch()
+
+var developerMode = {
+    elementFrame: undefined
+}
+developerMode.Reactive = {
+    CtrlKeyPressed: false,
+    ElementMouseIsOver: undefined,
+}
+
+
+document.addEventListener("keydown", () => {
+    developerMode.CtrlKeyPressed = event.ctrlKey
+});
+document.addEventListener("keyup", () => {
+    
+    developerMode.CtrlKeyPressed = event.ctrlKey
+    console.log("keyup", developerMode.CtrlKeyPressed)
+});
+
+document.addEventListener("mousemove", () => {
+    var x = event.clientX
+    var y = event.clientY
+
+    developerMode.ElementMouseIsOver = document.elementsFromPoint(x, y).find(x=>x.isBlock);
+    developerMode.CtrlKeyPressed = event.ctrlKey
+});
+
+
+function GoToSourceCode(callerFilePath, callerLineNumber) {
+    let json = JSON.stringify({
+                callerFilePath: callerFilePath,
+                callerLineNumber: Number(callerLineNumber)
+    })
+    fetch("/api/go_to_source_code",
+        {
+            method: "PUT",
+            body: json
+        }
+    )
+}
+
+
+
+new Reaction(() => {
+
+    if (developerMode.CtrlKeyPressed) {
+        if (!developerMode.elementFrame) {
+            let margin = document.createElement("developer-mode-element-frame")
+            margin.style.backgroundColor = "red"
+            margin.style.opacity = 0.25
+            margin.style.zIndex = Number.MAX_SAFE_INTEGER
+
+            margin.addEventListener("click", () => {
+
+                let target = developerMode.ElementMouseIsOver
+                if (target.dataset.callerFilePath !== undefined) {
+                    GoToSourceCode(target.dataset.callerFilePath, target.dataset.callerLineNumber || 0)
+                } else {
+                    console.warn("GoToSourceCode requires the 'data-caller-file-path' attribute to work")
+                }
+                event.preventDefault()
+                
+            });
+
+            let padding = document.createElement("padding")
+            padding.style.backgroundColor = "green"
+            padding.style.opacity = 1
+
+            let internal = document.createElement("internal")
+            internal.style.backgroundColor = "blue"
+            internal.style.opacity = 1
+
+            padding.appendChild(internal)
+            margin.appendChild(padding)
+
+            developerMode.elementFrame = margin
+            document.body.appendChild(developerMode.elementFrame)
+        }
+        developerMode.elementFrame.style.display = "block"
+
+        let target = developerMode.ElementMouseIsOver
+        if (target) {
+            let margin = developerMode.elementFrame
+            let padding = margin.children[0]
+            let internal = padding.children[0]
+
+            //margin.title = target.dataset.callerFilePath + "\nline: " + target.dataset.callerLineNumber
+
+            margin.style.left = Sum(target.AbsoluteX, -target.MarginLeft) + "px"
+            margin.style.top = Sum(target.AbsoluteY, -target.MarginTop) + "px"
+            margin.style.width = Sum(target.Width, target.MarginLeft, target.MarginRight) + "px"
+            margin.style.height = Sum(target.Height, target.MarginTop, target.MarginBottom) + "px"
+
+            padding.style.left = First(target.MarginLeft, 0) + "px"
+            padding.style.top = First(target.MarginTop, 0) + "px"
+            padding.style.width = First(target.Width, 0) + "px"
+            padding.style.height = First(target.Height, 0) + "px"
+
+            internal.style.left = First(target.PaddingLeft, 0) + "px"
+            internal.style.top = First(target.PaddingTop, 0) + "px"
+            internal.style.width = Sum(target.Width, -target.PaddingLeft, -target.PaddingRight) + "px"
+            internal.style.height = Sum(target.Height, -target.PaddingTop, -target.PaddingBottom) + "px"
+        }
+    } else {
+        if (developerMode.elementFrame) {
+            developerMode.elementFrame.style.display = "none"
+        }
+    }
+})
+function Color() {
+    let args = [...arguments]
+    let _this = this
+
+    _this.r = 0
+    _this.g = 0
+    _this.b = 0
+    _this.a = 1
+
+    if (args.length == 0) {
+        return
+    }
+
+    if (args.length == 1) {
+        let input = args[0]
+        if (typeof input == 'number') {
+            _this.r = (input & 0xFF) / 255
+            _this.g = ((input & 0xFF00) >>> 8) / 255
+            _this.b = ((input & 0xFF0000) >>> 16) / 255
+            _this.a = ((input & 0xFF000000) >>> 24) / 255
+            return;
+        }
+
+        if (typeof input == 'string') {
+            
+            if (input.substr(0, 1) == "#") {
+                var collen = (input.length - 1) / 3;
+                var fact = [17, 1, 0.062272][collen - 1] / 255;
+                _this.r = parseInt(input.substr(1, collen), 16) * fact
+                _this.g = parseInt(input.substr(1 + collen, collen), 16) * fact
+                _this.b = parseInt(input.substr(1 + 2 * collen, collen), 16) * fact 
+                return
+            }
+
+            //} return input.split("(")[1].split(")")[0].split(",").map(x => +x)
+
+        }
+
+        console.warn("Color: Invalid arguments", input)
+    }
+
+    if (args.some(x => (typeof x) != 'number')) {
+        console.warn("Color: Invalid arguments types", args)
+        return;
+    }
+
+    if ((args.length >= 3) & (args.length <= 4)) {
+        _this.r = args[0]
+        _this.g = args[1]
+        _this.b = args[2]
+
+        if (args.length == 4) {
+            _this.a = args[3]
+        }
+        return
+    }
+    
+    console.warn("Color: Invalid arguments", args)
+
+}
+
+Color.prototype.toString = function () {
+    return `rgba(${Math.round(255 * this.r)},${Math.round(255 * this.g)},${Math.round(255 * this.b)},${this.a})`
+}
+
+Color.prototype.lerp = function (targetColor, amount) {
+    var bk = (1 - amount);
+    var a = this.a * bk + targetColor.a * amount;
+    var r = this.r * bk + targetColor.r * amount;
+    var g = this.g * bk + targetColor.g * amount;
+    var b = this.b * bk + targetColor.b * amount;
+    return new Color(r, g, b, a);
+}
+
+Color.prototype.contrastColor = function (contrast = 1) {
+    var grayscale = (0.2125 * this.r) + (0.7154 * this.g) + (0.0721 * this.b);
+    var blackOrWhite = (grayscale > 0.5) ? new Color(0, 0, 0, 1) : new Color(1, 1, 1, 1);
+    return this.lerp(blackOrWhite, contrast);
+}
+var glass = undefined
+
+function getGlass() {
+    if (!glass) {
+        glass = document.createElement("glass")
+        document.body.appendChild(glass)
+        Glass(glass)
+    }
+    return glass
+}
+
+const glassZIndex = 99
+function Glass(element) {
+    element.style.width = "100vw"
+    element.style.height = "100vh"
+    //element.style.backgroundColor = "black"
+    element.style.zIndex = glassZIndex
+    element.style.position = "fixed"
+
+
+    element.Reactive = {
+        Color: new Color(0xff000000),
+        Visibility: 1,
+        MaxOpacity: 0.7
+    }
+    new Reaction(() => {
+        element.style.backgroundColor = element.Color
+    })
+
+    new Reaction(() => {
+        //element.style.backdropFilter = `blur(${element.Visibility*10}px)`;
+        element.style.opacity = element.Visibility * element.MaxOpacity
+        element.style.display = element.Visibility == 0 ? "none" : "block"
+    })
+}
+
+function lerp(a, b, t) {
+    return a + t * (b - a)
+}
+
+function AnimateTo(targetValue, duration) {
+    
+    let result = (property) => {
+        
+        let startValue = property.value
+        let startTime = performance.now()
+
+        return () => {
+            let elapsed = performance.now() - startTime
+            
+            if (elapsed < duration) {
+                window.AnimationFrame
+            }
+            let t = (typeof targetValue === "function") ? targetValue() : targetValue
+            let mormalizedTime = Math.min(elapsed / duration, 1)
+            
+            return lerp(startValue, t, mormalizedTime)
+        }
+    }
+    result.isBindingConstructor = true
+    return result
+}
+
+
+
+
+function PageSideMenus(element) {
+    Page(element)
+
+
+ 
+    let glass = getGlass()
+
+    const minSwipeToOpen = 40
+    const minSwipeToClose = 20
+    const swipeThreshold = 10
+
+    let toggle = false
+    element.Events.Click = () => {
+        
+        /*toggle = !toggle
+        element.ContentWidth = AnimateTo(
+            () => toggle ? (element.WindowWidth - 100) : 500,
+            10000)*/
+    }
+
+    element.Reactive = {
+        ContentWidth: 960,
+        SideBarsIconsSize: 48,
+
+        BarsCollapsed: () =>
+            element.Width < Sum(
+                element.ContentWidth,
+                element.LeftSideBar ? element.LeftSideBar.Width : 0,
+                element.RightSideBar ? element.RightSideBar.Width : 0),
+
+        //Content: () => element.Child("Content"),
+
+        SideBarOpen: 0, //-1 left , 1 right
+
+        //LeftSideBar: () => element.LeftSideBar,
+        //LeftSideBarIcon: () => element.LeftSideBarIcon,
+
+        //RightSideBar: () => element.RightSideBar,
+        //RightSideBarIcon: () => element.RightSideBarIcon,
+
+        TopBar: () => element.Content.Content.TopBar,
+
+        Footer: undefined,
+
+        SwipeXAboveThreshold: () => {
+            if (element.SwipeX > swipeThreshold)
+                return element.SwipeX - swipeThreshold
+            if (element.SwipeX < -swipeThreshold)
+                return element.SwipeX + swipeThreshold
+            return 0
+        },
+
+
+        MinSwipeToOpen_LeftSideBar: () => element.LeftSideBar ? Min(minSwipeToOpen, element.LeftSideBar.Width) : undefined,
+        MinSwipeToOpen_RightSideBar: () => element.RightSideBar ? Min(minSwipeToOpen, element.RightSideBar.Width) : undefined,
+
+        SwipeX: 0,
+        SwipeY: 0,
+        Swipe: false,
+
+        LeftSideBarSwipeProgress : 0,
+        RightSideBarSwipeProgress: 0,
+
+    }
+
+
+
+
+    let startX = 0
+    let startY = 0
+
+    const iconMargin = 10
+    const collapsedIconWidth = 6
+    const collapsedIconHeight = 120
+    
+
+    function touchStart() {
+        var touch = event.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        
+    }
+    function horizontalTouchMove() {
+        if (!event.cancelable) return
+        var touch = event.touches[0];
+        //console.log("horizontalTouchMove", event.path)
+        let d = Reaction.beginDeferred()
+        element.SwipeX = touch.clientX - startX
+        element.SwipeY = touch.clientY - startY
+        element.Swipe = true
+        d.end()
+        event.preventDefault()
+    }
+
+
+    element.pan = function (x, y) {
+        console.log("pan",element.tagName,x,y)
+        return [x,y]
+    }
+
+    
+    document.Events.TouchStart = {
+        handler: () => {
+            //if (event.pointerType != "touch") return
+
+            //console.log("document TouchStart", event.path)
+            touchStart()
+            document.Events.TouchMove = () => {
+                //console.log("document PointerMove", event.path, event.clientX, event.cancelable)
+                if (event.cancelable) {
+                    var touch = event.touches[0];
+                    let deltaX = Math.abs(touch.clientX - startX)
+                    //console.log("deltaX", deltaX, swipeThreshold)
+                    if (deltaX > swipeThreshold) {
+                        event.preventDefault()
+                        //console.log("horizontalTouchMove...")
+                        element.Events.TouchMove = {
+                            handler: horizontalTouchMove,
+                            passive: false
+                        }
+                    }
+                } else {
+                    //console.log("PointerMove = undefined")
+                    document.Events.TouchMove = undefined
+                    document.Events.TouchEnd = undefined
+                }
+            }
+            element.Events.TouchEnd = () => {
+                //console.log("TouchEnd")
+                element.Swipe = false
+                element.Events.TouchMove = undefined
+                element.Events.TouchEnd = undefined
+            }
+        },
+        passive: false
+    }
+    
+
+    glass.Events.TouchStart = {
+        handler: () => {
+            touchStart()
+
+            glass.Events.TouchMove = {
+                handler: horizontalTouchMove,
+                passive: false
+            }
+
+            glass.Events.TouchEnd = () => {
+                element.Swipe = false
+                glass.Events.TouchMove = undefined
+                glass.Events.TouchEnd = undefined
+            }
+        },
+        passive: false
+    }
+
+    glass.Events.Click = () => {
+        element.SideBarOpen = 0
+    }
+
+    
+
+
+    new Reaction(() => {
+        if (element.TopBar) {
+            if (element.LeftSideBar && element.BarsCollapsed) {
+                element.TopBar.MarginLeft = element.SideBarsIconsSize + iconMargin
+            } else {
+                element.TopBar.MarginLeft = 0
+            }
+        }
+    })
+    new Reaction(() => {
+        if (element.TopBar) {
+            if (element.RightSideBar && element.BarsCollapsed) {
+                element.TopBar.MarginRight = element.SideBarsIconsSize + iconMargin
+            } else {
+                element.TopBar.MarginRight = 0
+            }
+        }
+    })
+    new Reaction(() => {
+        if (element.TopBar) {
+            if ((element.RightSideBar || element.LeftSideBar) && element.BarsCollapsed) {
+                element.TopBar.Height = () => Max(element.TopBar.InternalHeight, element.SideBarsIconsSize)
+            } else {
+                element.TopBar.Height = () => First(element.TopBar.InternalHeight, element.SideBarsIconsSize)
+            }
+        }
+    })
+
+
+
+
+    
+
+
+    new Reaction(() => {
+        if (element.LeftSideBar) {
+            element.LeftSideBar.Depth = glassZIndex + 1
+            //element.LeftSideBar.style.position = "fixed"
+            element.LeftSideBar.Height = () => element.Height
+        }
+    })
+
+    new Reaction(() => {
+        if (element.RightSideBar) {
+            element.RightSideBar.Depth = glassZIndex + 1
+            //element.RightSideBar.style.position = "fixed"
+            element.RightSideBar.Height = () => element.Height
+        }
+    })
+
+
+
+
+    OnTruthify(
+        () => !element.Swipe,
+        () => {
+            if (element.BarsCollapsed) {
+                if (element.SideBarOpen == 0) {
+                    if (element.LeftSideBar && element.SwipeXAboveThreshold > element.MinSwipeToOpen_LeftSideBar) {
+                        element.SideBarOpen = -1
+                        return
+                    }
+                    if (element.RightSideBar && element.SwipeXAboveThreshold < -element.MinSwipeToOpen_RightSideBar) {
+                        element.SideBarOpen = 1
+                        return
+                    }
+                } else {
+                    if (Math.sign(element.SwipeXAboveThreshold) == Math.sign(element.SideBarOpen) && Math.abs(element.SwipeXAboveThreshold) > minSwipeToClose) {
+                        element.SideBarOpen = 0
+                    }
+                }
+            }
+        }
+    )
+
+    new Reaction(() => {
+        if (!element.BarsCollapsed) {
+            element.SideBarOpen = 0
+        }
+    })
+
+    //Glass Visibility
+    new Reaction(() => {
+        if (!element.BarsCollapsed) {
+            glass.Visibility = 0
+        } else {
+            if (element.SideBarOpen == 0) {
+                if (element.Swipe) {
+                    if (element.SwipeXAboveThreshold > 0) {
+                        if (element.LeftSideBar) {
+                            glass.Visibility = Math.min(Math.max(element.SwipeXAboveThreshold / element.MinSwipeToOpen_LeftSideBar, 0), 1)
+                            return
+                        }
+                    }
+                    if (element.SwipeXAboveThreshold < 0) {
+                        if (element.RightSideBar) {
+                            glass.Visibility = Math.min(Math.max(-element.SwipeXAboveThreshold / element.MinSwipeToOpen_RightSideBar, 0), 1)
+                            return
+                        }
+                    }
+                }
+            } else {
+                if (element.Swipe) {
+                    glass.Visibility = Math.min(Math.max(1 - element.SwipeXAboveThreshold * element.SideBarOpen / minSwipeToClose, 0), 1)
+                    return
+                } else {
+                    glass.Visibility = 1
+                    return
+                }
+            }
+        }
+        glass.Visibility = 0
+
+    })
+
+
+    new Reaction(() => {
+        if (element.LeftSideBar) {
+            if (element.BarsCollapsed) {
+                if (element.SideBarOpen == 0) {
+                    if (element.Swipe) {
+                        element.LeftSideBar.X = -element.LeftSideBar.Width + Clamp(element.SwipeXAboveThreshold, 0, element.LeftSideBar.Width)
+                    } else {
+                        element.LeftSideBar.X = -element.LeftSideBar.Width
+                    }
+                } else if (element.SideBarOpen == -1) {
+                    if (element.Swipe) {
+                        element.LeftSideBar.X = Clamp(element.SwipeXAboveThreshold, -element.LeftSideBar.Width, 0)
+
+                    } else {
+                        element.LeftSideBar.X = 0
+                    }
+                }
+            } else {
+                element.LeftSideBar.X = 0
+            }
+        }
+    })
+
+    new Reaction(() => {
+        
+        if (element.RightSideBar) {
+            if (element.BarsCollapsed) {
+                if (element.SideBarOpen == 0) {
+                    if (element.Swipe) {
+                        element.RightSideBar.X = element.Width + Clamp(element.SwipeXAboveThreshold, -element.RightSideBar.Width, 0)
+                    } else {
+                        element.RightSideBar.X = element.Width
+                    }
+                } else if (element.SideBarOpen == 1) {
+                    if (element.Swipe) {
+                        element.RightSideBar.X = element.Width - element.RightSideBar.Width + Clamp(element.SwipeXAboveThreshold, 0, element.RightSideBar.Width)
+                    } else {
+                        element.RightSideBar.X = element.Width - element.RightSideBar.Width
+                    }
+                } else if (element.SideBarOpen == -1) {
+                    element.RightSideBar.X = element.Width 
+                }
+            } else {
+                element.RightSideBar.X = element.Width - element.RightSideBar.Width
+            }
+        }
+    })
+
+
+    new Reaction(() => {
+
+        let LeftBarSize = (element.LeftSideBar && !element.BarsCollapsed) ? Max(element.LeftSideBar.Width, 0) : 0
+
+        let RightBarSize = (element.RightSideBar && !element.BarsCollapsed) ? Max(element.RightSideBar.Width, 0) : 0
+
+        let width = element.Width - LeftBarSize - RightBarSize
+        let innerWidth = Math.min(width, element.ContentWidth)
+        let contentSpace = (width - innerWidth) * 0.5
+
+        if (element.Content) {
+            //element.Content.Height = element.WindowHeight
+            element.Content.LayoutWidth = width// - 2 * contentSpace
+
+
+            element.Content.Content.PaddingLeft = contentSpace
+            element.Content.Content.PaddingRight = contentSpace
+            element.Content.Content.Width = width
+
+            element.Content.LayoutX = LeftBarSize
+            element.Content.LayoutHeight = element.Height//(element.Content.InternalHeight, element.Height)
+        }
+    })
+
+
+
+
+    function ConfugureIcon(icon) {
+        icon.Reactive = {
+            AnimationProgress: 1,
+            AnimationTarget: () => element.Content.ScrollYActual > 0 || icon.BarVisible ? 0 : 1
+        }
+
+        OnChanged(
+            () => icon.AnimationTarget,
+            (p, c) => {
+                icon.AnimationProgress = AnimateTo(c ? 1 : 0, 200)
+            }
+        )
+
+        icon.Y = () => icon.MarginTop
+        
+        icon.Width = () => lerp(collapsedIconWidth, element.SideBarsIconsSize, icon.AnimationProgress)
+        icon.Height = () => lerp(collapsedIconHeight, element.SideBarsIconsSize, icon.AnimationProgress)
+
+        icon.Radius = () => lerp(icon.Width, 0.5 * icon.Width, icon.AnimationProgress)
+        icon.Visibility = () => (element.BarsCollapsed) ? 1 : 0
+        icon.Depth = () => icon.BarVisible ? glassZIndex + 1 : glassZIndex - 1 
+
+    }
+
+    OnChanged(
+        () => element.LeftSideBar && element.LeftSideBarIcon,
+        (p, c) => {
+            if (c) {
+                let icon = element.LeftSideBarIcon
+                ConfugureIcon(icon)
+                icon.Reactive.BarVisible = () => (element.LeftSideBar.Width + element.LeftSideBar.X) > 0                
+                
+                icon.X = () => icon.MarginLeft * icon.AnimationProgress + element.LeftSideBar.X + element.LeftSideBar.Width
+
+                icon.RadiusTopLeft = () => 0.5 * icon.Width * icon.AnimationProgress
+                icon.RadiusBottomLeft = () => 0.5 * icon.Width * icon.AnimationProgress
+
+                icon.Events.Click = () => element.SideBarOpen = -1
+            }
+        }
+    )
+
+    OnChanged(
+        () => element.RightSideBar && element.RightSideBarIcon,
+        (p, c) => {
+            if (c) {
+                let icon = element.RightSideBarIcon
+                ConfugureIcon(icon)
+                icon.Reactive.BarVisible = () => element.RightSideBar.X < element.Width
+
+                icon.X = () => element.RightSideBar.X - icon.MarginRight * icon.AnimationProgress - element.RightSideBarIcon.Width
+
+                icon.RadiusTopRight = () => 0.5 * icon.Width * icon.AnimationProgress
+                icon.RadiusBottomRight = () => 0.5 * icon.Width * icon.AnimationProgress
+
+                icon.Events.Click = () => element.SideBarOpen = 1
+            }
+        }
+    )
+
+
+}
+function MaterialDesignIcon(element) {
+    /*new Reaction(() => {
+        //element.style.fill = element.ForegroundColor
+    })*/
+
+    new Reaction(() => {
+        let content = element.children[0]
+        content.style.fill = element.HierarchyForegroundColor
+    })
+}
+
+
+function MaterialDesignIconBlock(element) {
+    Block(element)
+    MaterialDesignIcon(element)
+
+
+    let width = Number(element.dataset.width)
+    let height = Number(element.dataset.height)
+
+
+    element.Reactive = {
+
+        Aspect: width / height,
+
+        VerticalPaddingSum: () => Sum(element.PaddingTop, element.PaddingBottom, 0),
+        HorizontalPaddingSum: () => Sum(element.PaddingLeft, element.PaddingRight, 0),
+
+        InternalWidth: () => First((element.Height - element.VerticalPaddingSum) * element.Aspect + element.HorizontalPaddingSum, Sum(width, element.HorizontalPaddingSum)),
+        InternalHeight: () => First((element.Width - element.HorizontalPaddingSum) / element.Aspect + element.VerticalPaddingSum, Sum(height, element.VerticalPaddingSum)),
+    }
+
+
+    new Reaction(() => {
+        let content = element.children[0]
+        let w = element.Width - element.HorizontalPaddingSum
+        let h = element.Height - element.VerticalPaddingSum
+        if (w <= 0 || h <= 0) {
+            content.style.display = "none"
+            content.style.width = ""
+            content.style.height = ""
+        } else {
+            content.style.display = ""
+            content.style.left = ToCssSize(element.PaddingLeft)
+            content.style.top = ToCssSize(element.PaddingTop)
+            content.style.width = ToCssSize(w)
+            content.style.height = ToCssSize(h)
+        }
+    })
+
+    
+
+
+    
+}
+
+
+function Thumb(element) {
+    Block(element)
+    element.Reactive = {
+        BackgroundColor: () => element.Parent.HierarchyForegroundColor,
+        
+        Radius: () => Min(element.Width, element.Height) / 2,
+        Depth: 1,
+        Visibility: () => (window.Touch || element.ThumbSizeScale >= 1) ? 0 : element.Hover ? 0.5 : 0.25,
+    }
+}
+
+function SetupPointerDrag(element, func) {
+    element.Events.PointerDown = () => {
+        event.stopPropagation()
+        event.preventDefault()
+        element.setPointerCapture(event.pointerId)
+
+        element.Events.PointerMove = () => {
+            let x = event.movementX
+            let y = event.movementY
+            if (x != 0 || y != 0) {
+                func(x,y)
+            }            
+        }
+        element.Events.PointerUp = () => {
+            element.Events.PointerUp = undefined
+            element.Events.PointerMove = undefined
+        }
+        return false
+    }
+}
+
+
+
+function ScrollLayout(element) {
+    Block(element)
+
+    
+
+
+    element.Reactive = {
+        InternalWidth: () => element.Content.InternalWidth,
+        InternalHeight: () => element.Content.InternalHeight,
+        //Content: () => element.Child("Content"),
+
+        MarginLeft: () => (element.PaddingLeft!=undefined) ? 0 : element.Content.MarginLeft,
+        MarginTop: () => (element.PaddingTop != undefined) ? 0 : element.Content.MarginTop,
+        MarginRight: () => (element.PaddingRight != undefined) ? 0 : element.Content.MarginRight,
+        MarginBottom: () => (element.PaddingBottom != undefined) ? 0 : element.Content.MarginBottom,
+
+        LeftOffset: () => CalcOffset(element, element.Content, "Left"),
+        RightOffset: () => CalcOffset(element, element.Content, "Right"),
+        TopOffset: () => CalcOffset(element, element.Content, "Top"),
+        BottomOffset: () => CalcOffset(element, element.Content, "Bottom"),
+
+        ContentAreaWidth: () => element.Width - element.LeftOffset - element.RightOffset,
+        ContentAreaHeight: () => element.Height - element.TopOffset - element.BottomOffset,
+
+        ScrollX: undefined,
+        ScrollY: undefined,
+
+        ScrollXActual: 0,
+        ScrollYActual: 0,
+
+        ScrollBarThickness: 4,
+        ScrollBarMargin: 2,
+
+        ShowScrollBars: !window.Touch
+    }
+
+    
+
+    let verticalThumb = Create(element, Thumb)
+    verticalThumb.Reactive = {
+        ThumbTravel: () => element.Height - 2 * element.ScrollBarMargin,
+        ThumbPositionScale: () => verticalThumb.ThumbTravel / element.Content.InternalHeight,
+        ThumbSizeScale: () => element.ContentAreaHeight / element.Content.InternalHeight, 
+        X: () => element.Width - verticalThumb.Width - element.ScrollBarMargin,
+        Y: () => element.ScrollBarMargin + element.ScrollYActual * verticalThumb.ThumbPositionScale,
+        Width: () => element.ScrollBarThickness,        
+        Height: () => verticalThumb.ThumbTravel * verticalThumb.ThumbSizeScale,
+    }
+    
+
+    let horizontalThumb = Create(element, Thumb)
+    horizontalThumb.Reactive = {
+        ThumbTravel: () => element.Width - 2 * element.ScrollBarMargin,
+        ThumbPositionScale: () => horizontalThumb.ThumbTravel / element.Content.Width,
+        ThumbSizeScale: () => element.ContentAreaWidth / element.Content.Width,        
+        X: () => element.ScrollBarMargin + element.ScrollXActual * horizontalThumb.ThumbPositionScale,
+        Y: () => element.Height - horizontalThumb.Height - element.ScrollBarMargin,
+        Width: () => horizontalThumb.ThumbTravel * horizontalThumb.ThumbSizeScale,
+        Height: () => element.ScrollBarThickness,        
+    }
+
+    SetupPointerDrag(verticalThumb, (x, y) => {
+        scrollable.scrollTop += y / verticalThumb.ThumbPositionScale
+    })
+
+    SetupPointerDrag(horizontalThumb, (x, y) => {
+        scrollable.scrollLeft += x / horizontalThumb.ThumbPositionScale
+    })
+
+
+    let scrollable = document.createElement("scrollable")
+    element.appendChild(scrollable)
+
+    scrollable.style.touchAction = "manipulation"
+    scrollable.style.overflow = "auto"
+    //scrollable.style.outline = "0.1px solid #f00"
+    
+    new Reaction(() => {
+        scrollable.style.left = ToCssSize(element.LeftOffset)
+        scrollable.style.top = ToCssSize(element.TopOffset)
+        scrollable.style.width = ToCssSize(element.ContentAreaWidth)
+        scrollable.style.height = ToCssSize(element.ContentAreaHeight)
+    })
+
+
+
+    scrollable.Events.Scroll = () => {
+        let d = Reaction.beginDeferred()
+        element.ScrollXActual = scrollable.scrollLeft
+        element.ScrollYActual = scrollable.scrollTop
+        d.end()
+    }
+
+
+    new Reaction(() => {
+        scrollable.appendChild(element.Content)
+        element.Content.LayoutWidth = () => Max(element.Content.InternalWidth, element.ContentAreaWidth)
+        element.Content.LayoutHeight = () => Max(element.Content.InternalHeight, element.ContentAreaHeight)
+    })
+
+
+   /*OnChanged(
+        () => element.Content,
+        (p, c) => {
+            if (c) {                
+                
+            }
+        }
+    )*/
+
+
+}
+function Column(element) {
+    Block(element)
+
+    element.Reactive = {
+        InternalWidth: () => {
+
+            let internalWidth = undefined
+            for (let child of element.Children) {
+                let left = CalcOffset(element, child, "Left")
+                let right = CalcOffset(element, child, "Right")
+
+                //let spaceLeft = Max(element.PaddingLeft, child.MarginLeft, 0)
+                //let spaceRight = Max(element.PaddingRight, child.MarginRight, 0)
+
+                let internalWidthByCurrentChild = Sum(child.InternalWidth, left + right)
+
+                internalWidth = Max(internalWidth, internalWidthByCurrentChild)
+            }
+            //console.log("internalWidth", internalWidth)
+            return internalWidth
+        },
+
+        //InternalHeight: undefined,
+        //Height: () => element.InternalHeight,
+    }
+
+
+    new Reaction(() => {
+        for (let child of element.Children) {
+            if (child.isBlock) {
+
+                child.LayoutX = () => CalcOffset(element, child, "Left")               
+
+                child.LayoutWidth = () => {
+                    let left = CalcOffset(element, child, "Left")
+                    let right = CalcOffset(element, child, "Right")
+                    return element.Width - left - right
+                }
+            }
+        }
+    })
+
+    new Reaction(() => {
+        let previousMargin
+        let freeSpaceUnits
+        let freeSpacePixels
+        let contentHeight
+
+        function addElement(child, assignDimensions) {
+            if (child.isSpace) {
+                if (assignDimensions) {
+                    contentHeight += freeSpacePixels / freeSpaceUnits * child.Between
+                } else {
+                    freeSpaceUnits += child.Between
+                }
+                return true;
+            }
+
+            if (child.isBlock) {
+                /*if (!child.Height) {
+                    console.log("Column !child.Height", child)
+                    return false
+
+                }*/
+
+                //console.log("child.Height", Max(child.Height, 0), child)
+
+
+                let margin = Max(child.MarginTop, previousMargin)
+                previousMargin = child.MarginBottom || 0
+
+
+                contentHeight += margin
+                if (assignDimensions) {
+                    child.LayoutY = contentHeight
+                }
+                contentHeight += Max(child.Height, 0)
+
+
+                return true
+            }
+            return true
+        }
+
+
+
+        previousMargin = element.PaddingTop || 0
+        freeSpaceUnits = 0
+        contentHeight = 0
+
+        for (let i of element.Children) {
+            if (!addElement(i, false)) {
+                return
+            }
+        }
+
+        //console.log("ColumnAfter Reaction", element, element.LayoutChildren)
+
+        //Here "previousMargin" contains last-child.MarginBottom
+        contentHeight += Max(previousMargin, element.PaddingBottom)
+        //console.log("Vertical layout", element, contentHeight)
+
+        previousMargin = element.PaddingTop || 0
+        element.InternalHeight = contentHeight;
+        if (!element.Height)
+            return
+
+        freeSpacePixels = element.Height - contentHeight;// Math.max( element.Height - contentHeight, 0)
+
+        if (freeSpacePixels < 0) {//overflow-y: overlay;
+            element.style.overflowY = "auto"
+            freeSpacePixels = 0
+            if (!element.innerSizeHolder) {
+                element.innerSizeHolder = document.createElement('holder')
+                element.innerSizeHolder.style.position = "absolute"
+                element.appendChild(element.innerSizeHolder)
+                element.innerSizeHolder.style.width = "1px"
+            }
+            element.innerSizeHolder.style.height = contentHeight + "px"
+        } else {
+            element.style.overflowY = ""
+            if (element.innerSizeHolder) {
+                element.removeChild(element.innerSizeHolder)
+                element.innerSizeHolder = undefined
+            }
+        }
+
+        //console.log("freeSpacePixels", freeSpacePixels)
+
+        contentHeight = 0
+
+        for (let i of element.Children) {
+            if (!addElement(i, true)) {
+                return
+            }
+        }
+    })
+
+
+}
+
+function Paragraph(element) {
+
+    Block(element)
+
+
+    element.Reactive = {
+        Selectable: true,
+        InternalWidth: () => Sum(element.MaxContentWidth,element.PaddingLeft, element.PaddingRight),
+
+        InternalHeight: undefined,
+
+        MaxContentWidth: undefined,
+        MinContentWidth: undefined,
+
+        MaxContentHeight: undefined,
+        MinContentHeight: undefined,
+
+        PaddingLeft: () => (element.BackgroundColor != undefined) ? 10 : undefined,
+        PaddingRight: () => (element.BackgroundColor != undefined) ? 10 : undefined,
+        PaddingTop: () => (element.BackgroundColor != undefined) ? 8 : undefined,
+        PaddingBottom: () => (element.BackgroundColor != undefined) ? 8 : undefined,
+
+        MarginLeft: () => (element.BackgroundColor != undefined) ? 0 : 10,
+        MarginRight: () => (element.BackgroundColor != undefined) ? 0 : 10,
+        MarginTop: () => (element.BackgroundColor != undefined) ? 0 : 8,
+        MarginBottom: () => (element.BackgroundColor != undefined) ? 0 : 8,
+
+    }
+
+    /*new Reaction(() => {
+        console.log(element, element.Child(0))
+    })*/
+
+
+    /*new Reaction(() => {
+        let l = element.PaddingLeft
+        let r = element.PaddingRight
+        let w = element.Width
+        if (l + r > w) {
+            let m = w / (l + r)
+            l *= m
+            r *= m
+        }
+        element.style.paddingLeft = ToCssSize(l)
+        element.style.paddingRight = ToCssSize(r)
+    })
+
+    new Reaction(() => {
+        element.style.paddingTop = ToCssSize(element.PaddingTop)
+    })
+    new Reaction(() => {
+        element.style.paddingBottom = ToCssSize(element.PaddingBottom)
+    })*/
+
+
+    new Reaction(() => {
+
+        const testFontSize = 128;
+
+        let content = element.children[0]
+
+        //content.style.position = "initial"
+        content.style.fontSize = testFontSize + "px";
+        content.style.width = "min-content"
+        var minWidthRect = content.getBoundingClientRect()
+        content.style.width = "max-content"
+        var maxWidthRect = content.getBoundingClientRect()
+
+        content.style.fontSize = ""
+        content.style.width = ""
+
+
+        element.MaxContentWidth = () =>  element.HierarchyFontSize / testFontSize * maxWidthRect.width
+        element.MinContentWidth = () =>  element.HierarchyFontSize / testFontSize * minWidthRect.width
+        element.MaxContentHeight = () => element.HierarchyFontSize / testFontSize * minWidthRect.height
+        element.MinContentHeight = () => element.HierarchyFontSize / testFontSize * maxWidthRect.height
+
+    })
+
+    new Reaction(() => {
+        let content = element.children[0]
+        /*
+        Left,
+        Center,
+        Right,
+        Justify,
+        JustifyIncludingLastLine
+         */
+        
+
+        if (element.TextAlignmentHorizontal == "JustifyIncludingLastLine") {
+            content.style.textAlign = "justify"
+            content.style.textAlignLast = "justify"
+        } else {
+            content.style.textAlignLast = ""
+            if (element.TextAlignmentHorizontal === undefined) {
+                content.style.textAlign = ""
+            } else {
+                content.style.textAlign = element.TextAlignmentHorizontal.toLowerCase()
+            }
+        }
+    })
+
+
+    new Reaction(() => {
+        //console.log("element.HierarchyFontSize", element.HierarchyFontSize, element)
+        //console.log("element.Modifier", element, element.Modifier)
+        //console.log("element.Modifier.HierarchyFontSize", element, element.Modifier.HierarchyFontSize)
+        element.style.width = ToCssSize(element.Width)
+
+        let content = element.children[0]
+
+        content.style.transformOrigin = ""
+        content.style.transform = ""
+        content.style.width = ""
+        content.style.display = ""
+        content.style.left = ToCssSize(element.PaddingLeft)
+        content.style.top = ToCssSize(element.PaddingTop)
+
+        let minContentWidthWithPaddings = Sum(element.MinContentWidth, element.PaddingLeft, element.PaddingRight)
+
+        if (minContentWidthWithPaddings > element.Width) {
+            //element.title = "element.MinContentWidth > element.Width"
+
+            
+
+            let scale = Sum(element.Width, -element.PaddingLeft, -element.PaddingRight) / element.MinContentWidth
+
+            if (scale > 0) {
+                content.style.width = "min-content"
+                content.style.transformOrigin = "top left"
+                content.style.transform = `scale(${scale}, ${scale})`
+                element.InternalHeight = Sum(element.MaxContentHeight * scale, element.PaddingTop, element.PaddingBottom)
+            } else {
+                content.style.display = "none"
+                element.InternalHeight = Sum(element.PaddingTop, element.PaddingBottom)
+            }
+
+            
+            return
+        }
+
+        let maxContentWidthWithPaddings = Sum(element.MaxContentWidth, element.PaddingLeft, element.PaddingRight)
+        if (Math.abs(element.Width - maxContentWidthWithPaddings) < 0.001) {
+            //element.title = "element.Width == element.MaxContentWidth"
+
+            element.InternalHeight = Sum(element.MinContentHeight, element.PaddingTop, element.PaddingBottom) 
+            content.style.width = "max-content"
+
+            return
+        }
+        
+
+        content.style.width = ToCssSize(Sum(element.Width, -element.PaddingLeft, -element.PaddingRight))
+
+        var rect = content.getBoundingClientRect()
+        element.InternalHeight = Sum(rect.height, element.PaddingTop, element.PaddingBottom)
+
+    })
+
+    HeightToStyle(element)
+}
+
+function Link(element) {
+    element.Reactive = {
+        HRef: undefined,
+        NewTab: false
+    }
+
+    new Reaction(() => {
+        element.setAttribute("href", element.HRef)
+    })
+    new Reaction(() => {
+        element.NewTab
+            ? element.setAttribute("target", "_blank")
+            : element.removeAttribute("target")
+        
+    })
+
+}
+function LinkBlock(element) {
+    Block(element)
+}
+
+function RowMeasurer(startMargin) {
+    let _this = this
+    _this.margin = startMargin
+    _this.currentX = 0
+
+    _this.add = function (child) {
+        let spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
+        _this.currentX += spaceLeft + child.Width
+        _this.margin = child.MarginRight
+    }
+
+    _this.finish = function (endMargin) {
+        let spaceRight = First(Max(endMargin, _this.margin), 0)
+        _this.currentX += spaceRight
+    }
+}
+
+function RowBuilder(element) {
+    let _this = this
+
+    let startMargin = First(element.PaddingLeft, 0)
+    let endMargin = First(element.PaddingRight, 0)
+    let maxWidth = element.Width
+
+    _this.margin = startMargin;
+    _this.currentX = 0
+
+    _this.currentLineHardY = 0
+    _this.currentLineSoftY = element.PaddingTop
+    _this.currentY = 0
+
+
+    //_this.newLineHardY = 0
+    //_this.newLineSoftY = 0
+
+    _this.lineIsEmpty = true
+
+    _this.currentLine = []
+
+    _this.finalizeCurrentLine = function () {
+
+        let margin = startMargin 
+        let x = 0
+        let newLineHardY = 0
+        let newLineSoftY = 0
+        
+        let availableSpace = maxWidth - _this.currentX - Max(_this.margin, element.PaddingRight, 0)
+        let spaceUnits = 0
+        for (let i = 0; i < _this.currentLine.length; i++) {
+            let child = _this.currentLine[i]
+            if (child.isSpace) {
+                switch (i) {
+                    case 0:
+                        spaceUnits += child.Before
+                        break;
+                    case _this.currentLine.length-1:
+                        spaceUnits += child.After
+                        break;
+                    default:
+                        spaceUnits += child.Between
+                }
+
+            }
+        }
+        
+        let pixelBySpaceUnits = spaceUnits>0 ?  availableSpace / spaceUnits : 0
+
+        for (let i = 0; i < _this.currentLine.length; i++){
+
+            let child = _this.currentLine[i]
+
+            if (child.isBlock) {
+                let spaceLeft = First(Max(margin, child.MarginLeft), 0)
+
+                var yA = Sum(_this.currentLineHardY, child.MarginTop)
+                var yB = _this.currentLineSoftY
+                var y = Max(yA, yB)
+
+                x += spaceLeft
+                child.LayoutX = x
+                x += child.Width
+                child.LayoutY = y
+                margin = child.MarginRight
+
+                var hardBottom = y + child.Height
+
+                newLineHardY = Max(newLineHardY, hardBottom)
+                newLineSoftY = Max(newLineSoftY, Sum(hardBottom, child.MarginBottom))
+
+                //continue
+            }
+            
+            if (child.isSpace) {
+                switch (i) {
+                    case 0:
+                        x += child.Before * pixelBySpaceUnits
+                        break;
+                    case _this.currentLine.length - 1:
+                        x += child.After * pixelBySpaceUnits
+                        break;
+                    default:
+                        x += child.Between * pixelBySpaceUnits
+                }
+            }
+        }
+
+        let lastSpace = undefined
+        if (_this.currentLine.length > 0) {
+            let last = _this.currentLine[_this.currentLine.length - 1]
+            if (last.isSpace) {
+                lastSpace = last
+            }
+        }
+        _this.currentLine = []
+        if (lastSpace) {
+            _this.currentLine.push(lastSpace)
+        }
+
+
+        _this.lineIsEmpty = true
+        _this.margin = startMargin
+        _this.currentX = 0
+        _this.currentLineHardY = newLineHardY;
+        _this.currentLineSoftY = newLineSoftY;
+
+    }
+
+
+
+    _this.layout = function (child) {
+        let spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
+        let spaceRight = Max(endMargin, child.MarginRight)
+        if (child.isBlock) {
+
+            if ((_this.currentX + spaceLeft + child.InternalWidth + spaceRight) > maxWidth) {
+                if (_this.currentLine.length > 0) {
+                    _this.finalizeCurrentLine()
+                    spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
+                }
+
+                if ((spaceLeft + child.InternalWidth + spaceRight) > maxWidth) {
+                    child.LayoutWidth = maxWidth - spaceLeft - spaceRight
+                } else {
+                    child.LayoutWidth = undefined
+                }
+            } else {
+                child.LayoutWidth = undefined
+            }
+            _this.currentX += Sum(spaceLeft, child.Width)
+            //console.log("_this.currentX", _this.currentX)
+            _this.margin = child.MarginRight
+
+            //_this.currentLine.push(child)
+
+        } else {
+
+            //_this.currentLineSpaceUnits = 0
+        }
+        _this.currentLine.push(child)
+    }
+    
+
+
+
+
+}
+
+function Row(element) {
+    Block(element)
+
+    element.isRow = true
+
+    element.Reactive = {
+
+        InternalWidth: () => {
+            let measurer = new RowMeasurer(
+                First(element.PaddingLeft, 0)
+            );
+
+            for (let child of element.children) {
+                measurer.add(child)
+            }
+            measurer.finish();
+            return measurer.currentX
+        },
+
+        //Width: () => element.InternalWidth,
+
+        ContentWidth: undefined,
+        ContentHeight: undefined,
+
+        /*Width: () => First(
+            element.LayoutWidth,
+            Sum(
+                element.ContentWidth,
+                element.PaddingLeft,
+                element.PaddingRight
+            )
+        ),*/
+        //Height: 150//() => Sum(element.ContentHeight, element.PaddingTop, element.PaddingButtom),
+    }
+
+    new Reaction(() => {
+
+        /*let contentWidth = undefined
+
+        let line = []
+        let lineContentWidth = 0
+        let lineGrowUnits = 0
+        let previousMargin = First(element.PaddingLeft,0)*/
+
+        let builder = new RowBuilder(element);
+
+        for (let child of element.children) {
+            builder.layout(child)
+
+        }
+        builder.finalizeCurrentLine()
+
+        var hA = Sum(builder.currentLineHardY, element.PaddingBottom)
+        var hB = builder.currentLineSoftY
+
+        element.InternalHeight = Max(hA, hB)
+
+
+    })
+
+}
+
+function Inline(element) {
+    BaseModifier(element)
+
+
+}
+function LinkInline(element) {
+    Inline(element)
+}
+function Space(element) {
+    element.isSpace = true
+    Hierarchical(element)
+
+    element.Reactive = {
+        Before: 1,
+        Between: 1,
+        After: 1
+    }
+}
+
+function Flipper(element) {
+    Block(element)
+    element.isFlipper = true
+
+
+    element.Reactive = {
+        FlipWidth:  640,
+        HorizontalSpace: 12,
+        VerticalSpace: 12,
+        //First: () => element.First,
+        //Second: () => element.First.NextSibling
+    }
+
+
+
+    new Reaction(() => {
+
+        if (element.Width > element.FlipWidth) {
+            let left = CalcOffset(element, element.First, "Left")
+            let right = CalcOffset(element, element.Second, "Right")
+
+            let top1 = CalcOffset(element, element.First, "Top")
+            let top2 = CalcOffset(element, element.Second, "Top")
+
+            let bottom1 = CalcOffset(element, element.First, "Bottom")
+            let bottom2 = CalcOffset(element, element.Second, "Bottom")
+
+            //let spaceLeft = Max(element.PaddingLeft, element.First.MarginLeft,0)
+            //let spaceRight = Max(element.PaddingRight, element.Second.MarginRight,0)
+            let spaceMid = Max(
+                element.First.MarginRight,
+                element.Second.MarginLeft,
+                element.HorizontalSpace
+            )
+
+            element.First.LayoutX = left
+            element.First.LayoutWidth = (element.Width - spaceMid) * 0.5 - left
+
+            element.Second.LayoutX = (element.Width + spaceMid) * 0.5 
+            element.Second.LayoutWidth = (element.Width - spaceMid) * 0.5 - right
+
+            element.First.LayoutY = top1
+            element.Second.LayoutY = top2
+
+            let height = Max(
+                element.First.InternalHeight + top1 + bottom1,
+                element.Second.InternalHeight + top2 + bottom2,
+            )
+
+            element.InternalHeight = height
+            element.First.LayoutHeight = height - top1 - bottom1
+            element.Second.LayoutHeight = height - top2 - bottom2
+
+        } else {
+            let orderedChildren = [element.First, element.Second]
+            let margin = First(element.PaddingTop, 0)
+            
+            let y = 0
+            for (let i of orderedChildren) {
+                i.LayoutHeight = undefined
+            }
+
+            for (let i of orderedChildren) {
+                let spaceLeft = Max(element.PaddingLeft, i.MarginLeft, 0)
+                let spaceRight = Max(element.PaddingRight, i.MarginRight, 0)
+                let spaceTop = Max(margin, i.MarginTop, 0)
+
+                i.LayoutX = spaceLeft
+                i.LayoutWidth = element.Width - spaceLeft - spaceRight
+                i.LayoutY = y + spaceTop
+
+                y += Sum(spaceTop, i.InternalHeight)
+                margin = Max(i.MarginButtom, element.VerticalSpace, 0)
+
+            }
+            
+            element.InternalHeight = y + margin
+        }
+    })
+
+
+
+}
+
+
+var YouTube = {
+    initialize: function () {
+        youtubeIFrameApiScript = document.createElement("script")
+        youtubeIFrameApiScript.src = "https://www.youtube.com/iframe_api"
+
+        let timeout = setTimeout(() => {
+            document.head.removeChild(youtubeIFrameApiScript)
+            youtubeIFrameApiScript.onload = undefined
+            youtubeIFrameApiScript.onerror = undefined
+            let d = Reaction.beginDeferred()
+            YouTube.Status = "error"
+            d.end()
+        }, 500)
+
+        youtubeIFrameApiScript.onload = function () {
+            clearTimeout(timeout)
+            YT.ready(function () {
+                let d = Reaction.beginDeferred()
+                YouTube.Status = "ready"
+                d.end()
+            })            
+        }
+        youtubeIFrameApiScript.onerror = function () {
+            clearTimeout(timeout)
+            let d = Reaction.beginDeferred()
+            YouTube.Status = "error"
+            d.end()
+        }
+
+        document.head.appendChild(youtubeIFrameApiScript)
+        YouTube.Status = "loading"
+    }
+}
+
+YouTube.Reactive = {
+    Status: undefined
+}
+
+
+var uniqueID = 0;
+function getUniqueID() {
+    uniqueID++;
+    return "juid" + uniqueID;
+}
+
+
+function Video(element) {
+    Block(element)
+    element.isVideo = true
+
+    let youtubeId = element.dataset.youtubeId
+
+    var sourcesJson = element.dataset.sources.replaceAll("'", '"');
+    var sources = JSON.parse(sourcesJson)
+
+
+
+    element.Reactive = {
+        Selectable: false,
+
+        Aspect: element.dataset.width / element.dataset.height,
+        InternalWidth: () => First(element.Height * element.Aspect, element.dataset.width),
+        InternalHeight: () => First(element.Width / element.Aspect, element.dataset.height),
+
+        PreferPlatformPlayer: true,
+
+        Controls: true,
+
+        Loop: false,
+
+        Play: false,
+        PlayActual: () => element.Play,
+
+        Position: 0,
+
+        PositionActual: undefined,
+
+        Mute: false,
+        MuteActual: () => element.Mute,
+
+        Volume: 1,
+        VolumeActual: () => element.Volume,
+
+
+
+        VideoPlayerType: undefined,//youtube, video
+
+        Player: undefined,
+        Positioner: undefined,
+
+        PositionInitialized: false,
+
+        SourceIndex: undefined
+
+
+    }
+
+
+
+
+    /*window.setInterval(() => {
+        element.PositionUpdateTimer++;
+    },50)*/
+
+
+    var playerDestructor = undefined
+
+
+    new Reaction(() => {
+        if (!element.Player)
+            element.PositionInitialized = false
+    })
+
+
+    //element.style.overflow = "hidden"
+
+
+
+    /*
+     if (!showControls) {
+                iframe.style.pointerEvents = "none";
+            }
+
+
+     */
+
+    new Reaction(() => {
+        if (element.VideoPlayerType == "html5") {
+            if (element.Player) {
+                if (element.Width == undefined)
+                    return;
+
+                /*let lossFunction = (source) => {
+                    return Math.abs(element.Width - source.size.x)
+                }*/
+                let lossFunction = (source) => {
+                    let pixelWidth = element.Root.DevicePixelRatio * element.Width
+                    if (source.size.x < pixelWidth) {
+                        return 8 * (pixelWidth - source.size.x)
+                    }
+                    return source.size.x - pixelWidth
+                }
+
+                let closestSourceLoss = lossFunction(sources[0])
+                let closestSourceIndex = 0
+                for (let i = 1; i < sources.length; i++) {
+                    let loss = lossFunction(sources[i])
+                    if (loss < closestSourceLoss) {
+                        closestSourceLoss = loss
+                        closestSourceIndex = i
+                    }
+                }
+
+                element.SourceIndex = closestSourceIndex
+            }
+        }
+    })
+
+    new Reaction(() => {
+        if (element.VideoPlayerType == "html5") {
+            if (!element.Player)
+                return
+
+            let position = element.Player.currentTime
+            element.Player.src = sources[element.SourceIndex].url
+            element.Player.currentTime = position
+        }
+    })
+
+
+    function FitOutside(child, childAspect, parentWidth, parentHeight) {
+
+    }
+
+    function FitInside(child, childAspect, parentWidth, parentHeight) {
+        let parentAspect = parentWidth / parentHeight
+
+        if (parentAspect > childAspect) {
+            child.style.top = 0
+            child.style.height = element.Height + "px"
+
+            let calculatedWidth = element.Height * element.Aspect
+            child.style.left = 0.5 * (element.Width - calculatedWidth) + "px"
+            child.style.width = calculatedWidth + "px"
+        } else {
+            child.style.left = 0
+            child.style.width = element.Width + "px"
+
+            let calculatedHeight = element.Width / element.Aspect
+            child.style.top = 0.5 * (element.Height - calculatedHeight) + "px"
+            child.style.height = calculatedHeight + "px"
+        }
+    }
+    
+
+
+    new Reaction(() => {
+        let positioner = element.Positioner
+        if (!positioner)
+            return
+
+        FitInside(positioner, element.Aspect, element.Width, element.Height)        
+    })
+
+
+    function InitializeYoutubeIFrame() {
+        if (playerDestructor) {
+            playerDestructor()            
+        }
+
+        element.VideoPlayerType = "youtube"
+
+        var positioner = document.createElement("youtube-iframe-positioner");
+        element.appendChild(positioner);
+        element.Positioner = positioner
+
+        var iframe = document.createElement("div");
+        iframe.id = getUniqueID();
+
+        positioner.appendChild(iframe);
+        iframe.style.width = "100%"
+        iframe.style.height = "100%"
+
+        let playerVars = {
+            rel: 0,
+            //"autoplay": autoPlay ? 1 : 0,
+
+            //???showinfo: 0,
+
+            controls: element.Controls ? 1 : 0,
+            origin: window.location.origin
+        }
+
+        if (element.Loop) {
+            playerVars.loop = 1
+            playerVars.playlist = youtubeId
+        }
+
+        let volumeTimeout = undefined
+        let positionTimeout = undefined
+
+        let player = new YT.Player(iframe.id, {
+            videoId: youtubeId,
+            host: "http://www.youtube-nocookie.com",
+            playerVars: playerVars,
+            events: {
+                onReady: () => {                    
+                    /*if (currentPosition !== 0) {
+                        player.seekTo(currentPosition, true)
+                    }*/
+
+                    element.PositionActual = () => {
+                        clearTimeout(positionTimeout)
+
+                        if (!element.Player)
+                            return undefined
+
+                        let result = element.Player.getCurrentTime()
+                        if (element.PlayActual) {
+                            positionTimeout = window.setTimeout(() => {
+                                element.Reactive.PositionActual.makeDirty()
+                            }, 50)
+                        }
+                        return result
+                    }
+
+
+
+                    element.VolumeActual = () => {
+                        clearTimeout(volumeTimeout)
+
+                        if (!element.Player)
+                            return undefined
+
+                        let result = element.Player.getVolume() * 0.01
+
+                        volumeTimeout = window.setTimeout(() => {
+                            element.Reactive.VolumeActual.makeDirty()
+                        }, 100)
+                        return result
+                    }
+
+
+                    element.Player = player
+                    //element.PlayerReady = true
+                },
+                onStateChange: function (event) {
+                    if (event.data == YT.PlayerState.ENDED) {
+                        element.PlayActual = false
+                    } else if (event.data == YT.PlayerState.PLAYING) {
+                        element.PlayActual = true
+                    } else if (event.data == YT.PlayerState.PAUSED) {
+                        element.PlayActual = false
+                    }
+                }
+            }
+        })
+        
+        
+        playerDestructor = function () {
+            clearTimeout(volumeTimeout)
+            clearTimeout(positionTimeout)
+            
+            playerDestructor = undefined
+
+            player.destroy()
+            element.removeChild(positioner)
+
+            let d = Reaction.beginDeferred()
+            element.Player = undefined
+            d.end()
+        }        
+    }
+
+
+
+
+    function InitializeHtml5Video() {
+        element.VideoPlayerType = "html5"
+
+        if (playerDestructor) {
+            playerDestructor()
+        }
+
+        let player = document.createElement("video")
+        element.appendChild(player)
+        element.Positioner = player
+
+        player.src = sources[1].url
+        player.muted = true
+        player.setAttribute("playsinline","")
+         
+
+        player.ontimeupdate = () => element.PositionActual = element.Player.currentTime
+
+        player.onplay = () => {
+            let d = Reaction.beginDeferred()
+            element.PlayActual = true
+            window.UserInteracted = true
+            d.end()
+        }
+        player.onpause = () => {
+            let d = Reaction.beginDeferred()
+            element.PlayActual = false
+            window.UserInteracted = true
+            d.end()
+        }
+
+        element.VolumeActual = player.volume
+        player.onvolumechange = () => {
+            let d = Reaction.beginDeferred()
+            window.UserInteracted = true
+            element.VolumeActual = player.volume
+            element.MuteActual = player.muted
+            d.end()
+        }
+
+        /*player.Events.MouseDown = () => {
+            console.log("MouseDown")
+        }*/
+
+        element.Player = player
+
+        playerDestructor = function () {
+            playerDestructor = undefined
+
+            player.ontimeupdate = undefined
+            player.onpause = undefined
+            player.onplay = undefined
+            player.onvolumechange = undefined
+
+            element.Player = undefined
+            element.removeChild(player)            
+        }
+    }
+
+
+    new Reaction(() => {
+
+        if (element.PreferPlatformPlayer) {
+            if (element.dataset.youtubeId !== undefined) {
+                if (YouTube.Status === undefined) {
+                    YouTube.initialize()
+                }
+                if (YouTube.Status == "ready") {
+                    InitializeYoutubeIFrame()
+                }
+                if (YouTube.Status == "error") {
+                    InitializeHtml5Video()
+                }
+            }
+        } else {
+            InitializeHtml5Video()
+        }
+    })
+
+
+
+    //Position
+    new Reaction(() => {
+        
+        if (!element.Player)
+            return
+
+        const positionTolerance = 0.05;
+
+        if (element.VideoPlayerType == "youtube") {
+            let delta = element.Player.getCurrentTime() - element.Position
+            if (Math.abs(delta) > positionTolerance) {
+                element.Player.seekTo(element.Position, true)
+            }
+        } else {
+            let delta = element.Player.currentTime - element.Position
+            if (Math.abs(delta) > positionTolerance) {
+                element.Player.currentTime = element.Position
+            }
+        }
+        element.PositionInitialized = true
+
+    })
+
+    
+
+    //Play
+    new Reaction(() => {
+        if (!element.Player)
+            return
+
+        if (!element.PositionInitialized)
+            return     
+        
+        if (element.VideoPlayerType == "youtube") {
+            if (element.Play) {
+                console.log("Play")
+                element.Player.playVideo()
+            } else {
+                element.Player.pauseVideo()
+            }
+        } else {
+            if (element.SourceIndex == undefined)
+                return
+
+            element.Play ? element.Player.play() : element.Player.pause()
+        }        
+    })
+
+
+
+    //Mute
+    new Reaction(() => {
+        if (element.Player) {
+            if (element.VideoPlayerType == "youtube") {
+                if (element.Mute) {
+                    element.Player.mute()                    
+                } else {
+                    element.Player.unMute()
+                }
+            } else {
+                if (element.Mute != undefined) {
+                    var value = (!window.UserInteracted) || element.Mute
+                    element.Player.muted = value
+                }
+            }
+        }
+    })
+
+    //Volume
+    new Reaction(() => {
+        if (element.Player) {
+            //console.log("element.Volume", element.Volume)
+            if (element.Volume == undefined)
+                return
+
+            if (element.VideoPlayerType == "youtube") {
+                element.Player.setVolume(100 * element.Volume);
+            } else {
+                element.Player.volume = element.Volume
+            }
+        }
+    })
+
+
+    //Loop
+    new Reaction(() => {
+        if (element.Player) {
+            if (element.VideoPlayerType == "youtube") {
+
+            } else {
+                element.Player.loop = element.Loop
+            }
+        }
+    })
+
+    //Controls
+    new Reaction(() => {
+        if (element.Player) {
+            if (element.VideoPlayerType == "youtube") {
+
+
+            } else {
+                element.Player.controls = element.Controls                
+            }
+        }
+    })    
+
+}
+</script><style>html {
+    display: initial;
+    position: absolute;
+    overscroll-behavior-x: none;
+    //overscroll-behavior: contain;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+body {
+    position: absolute;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    visibility: hidden;
+    opacity: 0;
+    white-space: normal;
+    line-height: 1.5;
+    touch-action: none;
+    margin: 0;
+}
+
+
+input[type="checkbox"] {
+    //appearance: none;
+    //display: inline-block;
+    background-color: #fff;
+    margin: 0;
+    font: inherit;
+    color: currentColor;
+    width: 1.15em;
+    height: 1.15em;
+    border: 0.15em solid currentColor;
+    border-radius: 0.15em;
+    transform: translateY(+0.2em);
+}
+
+
+/*
+::-webkit-scrollbar {
+    width: 50px;
+    overflow: visible;
+}
+
+
+::-webkit-scrollbar-track {
+    background: red;
+    overflow: visible;
+}
+
+::-webkit-scrollbar-thumb {
+    position: absolute;
+    background: green;
+    width: 20px;
+    left: -20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6E6E6E;
+}
+::-webkit-scrollbar-track {
+    position: absolute;
+    //right: -40px;
+    //top: -50px;
+}*/
+
+
+
+
+* {
+    scrollbar-width: none;
+}
+::-webkit-scrollbar {
+    display: none;
+    //width: 0;
+}
+
+head {
+    display: none;
+}
+
+body * {
+    tab-size: 4;
+    touch-action: inherit;
+    display: inherit;
+    overflow-x: visible;
+    overflow-y: visible;
+    //z-index: inherit;
+    position: absolute;
+    //position: inherit;
+    margin: 0;
+    visibility: inherit;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+    line-height: inherit;
+    text-decoration-color: inherit;
+    color: inherit;
+    justify-content: inherit;
+    align-content: inherit;
+    text-align: inherit;
+    box-sizing: border-box;
+    word-break: keep-all;
+    //word-wrap: break-word;
+    //overflow: clip;
+    //overflow: hidden;
+    white-space: inherit;
+}
+
+p {
+    white-space: break-spaces;
+}
+p * {
+    position: static;
+    display: inline;
+    
+}
+
+
+overlay {
+    display: contents;
+}
+/*w::after {
+        color: black;
+        content: "\00a0";
+    }*/
+/*p {
+        margin-left: -10px;
+        //display: flex;
+        //flex-wrap: wrap;
+        //gap: 1em;
+    }
+
+    span {
+        color: black;
+        //margin: 0 -1em 0 0;
+    }
+
+    span {
+        display: inline-block;
+        //flex-shrink: 1;
+        //word-wrap: break-word;
+    }
+
+
+
+    span::after {
+        flex-grow: 1;
+        display: inline-block;
+        //margin-right: -10px;
+        white-space: pre-line;
+        content: "\00a0";
+        flex-shrink: 5;
+    }*/
+
+* {
+    //outline: 0.1px solid #f00 !important;
+}
+/*a:hover {
+        opacity: 0.8;
+    }
+
+    a:visited {
+        text-decoration-color: inherit;
+    }*/
+
+
+
+</style><style>@font-face {font-family: Roboto;font-weight: 700;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+@font-face {font-family: Roboto;font-weight: 400;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+</style></head><body style="font-family:Roboto;font-weight:400;font-style:normal;"><script>{let element = Constructor(PageSideMenus);element.Reactive={BackgroundColor:new Color(0xFFEBEDF8),ContentWidth:800,SideBarsIconsSize:48,FontSize:16}}</script><material-design-icon-block data-width="24" data-height="24" data-property="LeftSideBarIcon"><script>{let element = Constructor(MaterialDesignIcon,MaterialDesignIconBlock);element.Reactive={BackgroundColor:new Color(0xFF7A596D),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" />
+</svg><script>Pop()</script></material-design-icon-block><scroll-layout data-property="LeftSideBar"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0xFF606060)}}</script><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20,BackgroundColor:() => (element.Hover?new Color(0xFF6E6E6E):new Color(0xFF606060))}}</script><p>Material Design Icons</p><a data-child><script>{let element = Constructor(Link,LinkBlock);element.Reactive={HRef:"http://staticsharp.github.io/Components/MaterialDesignIconsComponent/en.html",Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></a><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20,BackgroundColor:() => (element.Hover?new Color(0xFF6E6E6E):new Color(0xFF606060))}}</script><p>Paragraph</p><a data-child><script>{let element = Constructor(Link,LinkBlock);element.Reactive={HRef:"http://staticsharp.github.io/Components/ParagraphComponent/en.html",Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></a><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20,BackgroundColor:() => (element.Hover?new Color(0xFF6E6E6E):new Color(0xFF606060))}}</script><p>Scroll Layout</p><a data-child><script>{let element = Constructor(Link,LinkBlock);element.Reactive={HRef:"http://staticsharp.github.io/Components/ScrollLayoutComponent/en.html",Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></a><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20,BackgroundColor:() => (element.Hover?new Color(0xFF6E6E6E):new Color(0xFF606060))}}</script><p>Video Player</p><a data-child><script>{let element = Constructor(Link,LinkBlock);element.Reactive={HRef:"http://staticsharp.github.io/Components/VideoPlayer/en.html",Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></a><script>Pop()</script></paragraph><script>Pop()</script></column><script>Pop()</script></scroll-layout><material-design-icon-block data-width="24" data-height="24" data-property="RightSideBarIcon"><script>{let element = Constructor(MaterialDesignIcon,MaterialDesignIconBlock);element.Reactive={BackgroundColor:new Color(0xFF24597A),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <path d="M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z" />
+</svg><script>Pop()</script></material-design-icon-block><column data-property="RightSideBar"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0xFF24597A)}}</script><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>En</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Ru</p><script>Pop()</script></paragraph><script>Pop()</script></column><scroll-layout data-property="Content"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content"><script>{let element = Constructor(Column);}</script><paragraph data-property="TopBar" data-child><script>{let element = Constructor(Paragraph);element.Reactive={Height:() => Min(element.Root.SideBarsIconsSize,element.InternalHeight),TextAlignmentHorizontal:"Center",MarginTop:0,MarginBottom:0,FontSize:() => element.Root.SideBarsIconsSize}}</script><p>Components</p><script>Pop()</script></paragraph><row data-child><script>{let element = Constructor(Row);element.Reactive={Depth:1,BackgroundColor:new Color(0xFF7665B5),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight)),PaddingLeft:() => element.ParentBlock.PaddingLeft,PaddingRight:() => element.ParentBlock.PaddingRight}}</script><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={Selectable:false,MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingLeft:20,PaddingRight:20,PaddingTop:20,PaddingBottom:20,BackgroundColor:() => (element.Hover?new Color(0xFF6F6BE5):new Color(0x00000000))}}</script><p>Paragraph</p><a data-child><script>{let element = Constructor(Link,LinkBlock);element.Reactive={HRef:"http://staticsharp.github.io/en.html",BackgroundColor:new Color(0x80000000),MarginLeft:() => (window.Touch?-20:0),MarginRight:() => (window.Touch?-20:0),MarginTop:() => (window.Touch?-20:0),MarginBottom:() => (window.Touch?-20:0),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight)),Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft))}}</script><script>Pop()</script></a><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={Selectable:false,MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingLeft:20,PaddingRight:20,PaddingTop:20,PaddingBottom:20,BackgroundColor:() => (element.Hover?new Color(0xFF6F6BE5):new Color(0x00000000))}}</script><p><a><script>{let element = Constructor(Link,LinkInline);element.Reactive={HRef:"https://developers.antilatency.com/"}}</script>First<script>Pop()</script></a></p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={Selectable:false,MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingLeft:20,PaddingRight:20,PaddingTop:20,PaddingBottom:20,BackgroundColor:() => (element.Hover?new Color(0xFF6F6BE5):new Color(0x00000000))}}</script><p>Second</p><script>Pop()</script></paragraph><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={Selectable:false,MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingLeft:20,PaddingRight:20,PaddingTop:20,PaddingBottom:20,BackgroundColor:() => (element.Hover?new Color(0xFF03B7FF):new Color(0x00000000))}}</script><p>Last</p><script>Pop()</script></paragraph><script>Pop()</script></row><flipper data-child><script>{let element = Constructor(Flipper);}</script><player data-youtube-id="-LF5M9nlFQs" data-width="1280" data-height="720" data-sources="[{'size':{'x':640,'y':360},'url':'http://staticsharp.github.io/57F3EED08C8E142DFCB6E2BE45D641A5.mp4'},{'size':{'x':1280,'y':720},'url':'http://staticsharp.github.io/B47C712FD10A5D6A3443ADAF8D3AF970.mp4'}]" data-property="First"><script>{let element = Constructor(Video);}</script><script>Pop()</script></player><column data-property="Second"><script>{let element = Constructor(Column);}</script><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><paragraph data-child style="font-weight:400;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:48}}</script><p>Video</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Компонент Video может отображаться как iframe или как video tag, в зависимости от настроек<br>Подробнее <a><script>{let element = Constructor(Link,LinkInline);element.Reactive={HRef:"http://staticsharp.github.io/Components/VideoPlayer/en.html"}}</script>Video Player<script>Pop()</script></a></p><script>Pop()</script></paragraph><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><script>Pop()</script></column><script>Pop()</script></flipper><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><row data-child><script>{let element = Constructor(Row);element.Reactive={BackgroundColor:new Color(0xFF705035),PaddingTop:20,PaddingBottom:20,X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight)),PaddingLeft:() => element.ParentBlock.PaddingLeft,PaddingRight:() => element.ParentBlock.PaddingRight}}</script><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-weight:700;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Links</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут ссылки</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-weight:700;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 2</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут еще ссылки</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-weight:700;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 3</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>и тут будут ссылки</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>line 2</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>line 3</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><script>Pop()</script></row><script>Pop()</script></column><script>Pop()</script></scroll-layout><script>Pop()</script><svg style="display:none;"><defs></defs></svg></body>

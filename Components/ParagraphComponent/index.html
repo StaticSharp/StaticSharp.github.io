@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <script>function matchLanguage(pageLanguages) {
+    function getBrowserLanguages() {
+        if (!navigator) return [];
+        if (navigator.languages) return navigator.languages;                    
+        return [navigator.language];
+    }
+    var browserLanguages = getBrowserLanguages().map(x => x.replace("-", "_").toLowerCase())
+    console.log(pageLanguages,browserLanguages)
+    for (let i of browserLanguages) {
+        if (pageLanguages.includes(i)) {
+            return i
+        }
+    }
+    for (let b of browserLanguages) {
+        for (let p of pageLanguages) {
+            if (b.startsWith(p)) {
+                return p
+            }
+        }
+    }
+    return pageLanguages[0]
+}
+var extension = (window.location.protocol=="file:") ? ".html" : ""
+alert(window.location.protocol)
+alert(extension)
+window.location.replace(matchLanguage(["en","ru"]) + extension)</script>
+  </body>
+</html>
