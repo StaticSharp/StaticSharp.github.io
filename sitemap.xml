@@ -31,9 +31,6 @@
 		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Components/VideoPlayer/Ru.html"/>
 	</url>
 	<url>
-	<loc>http://staticsharp.github.io/Customization/En.html</loc>
-	</url>
-	<url>
 	<loc>http://staticsharp.github.io/Customization/HowToCreateNewComponent/En.html</loc>
 		<xhtml:link rel="alternate" hreflang="en" href="http://staticsharp.github.io/Customization/HowToCreateNewComponent/En.html"/>
 		<xhtml:link rel="alternate" hreflang="ru" href="http://staticsharp.github.io/Customization/HowToCreateNewComponent/Ru.html"/>
