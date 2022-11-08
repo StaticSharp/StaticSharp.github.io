@@ -3,6 +3,7 @@
   <head></head>
   <body>
     <script>function matchLanguage(pageLanguages) {
+    pageLanguages = pageLanguages.map(x => x.toLowerCase())
     function getBrowserLanguages() {
         if (!navigator) return [];
         if (navigator.languages) return navigator.languages;                    
@@ -27,6 +28,6 @@
 var extension = (window.location.protocol=="file:") ? ".html" : ""
 alert(window.location.protocol)
 alert(extension)
-window.location.replace(matchLanguage(["en","ru"]) + extension)</script>
+window.location.replace(matchLanguage(["En","Ru"]) + extension)</script>
   </body>
 </html>
