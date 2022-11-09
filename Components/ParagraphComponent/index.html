@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
-  <head></head>
-  <body>
-    <script>function matchLanguage(pageLanguages) {
+    <head>
+        <script>function matchLanguage(pageLanguages) {
     function getBrowserLanguages() {
         if (!navigator) return [];
         if (navigator.languages) return navigator.languages;                    
@@ -26,5 +25,7 @@
 }
 var extension = (window.location.protocol=="file:") ? ".html" : ""
 window.location.replace(matchLanguage(["en","ru"]) + extension)</script>
-  </body>
+        <meta http-equiv="refresh" content="0; url=https://google.com/" />
+    </head>
+    <body></body>
 </html>
