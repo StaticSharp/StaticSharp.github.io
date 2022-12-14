@@ -1,97 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset
-      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
-
-
-<url>
-  <loc>https://staticsharp.github.io/</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>1.00</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.80</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.64</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.64</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/CodeComponent/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ImageComponent/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/MaterialDesignIconsComponent/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ParagraphComponent/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ScrollLayoutComponent/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/VideoPlayer/en</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.51</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/CodeComponent/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.41</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ImageComponent/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.41</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/MaterialDesignIconsComponent/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.41</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ParagraphComponent/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.41</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/ScrollLayoutComponent/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.41</priority>
-</url>
-<url>
-  <loc>https://staticsharp.github.io/Components/VideoPlayer/ru</loc>
-  <lastmod>2022-11-17T18:41:57+00:00</lastmod>
-  <priority>0.41</priority>
-</url>
-
-
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+	<url>
+	<loc>https://staticsharp.github.io/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/CodeComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/CodeComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/CodeComponent/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/ImageComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/ImageComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ImageComponent/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/MaterialDesignIconsComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/MaterialDesignIconsComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/MaterialDesignIconsComponent/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/ParagraphComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/ParagraphComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ParagraphComponent/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/ScrollLayoutComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/ScrollLayoutComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ScrollLayoutComponent/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Components/VideoPlayer/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/VideoPlayer/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/VideoPlayer/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Customization/HowToCreateNewComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Customization/HowToCreateNewComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Customization/HowToCreateNewComponent/ru"/>
+	</url>
 </urlset>
