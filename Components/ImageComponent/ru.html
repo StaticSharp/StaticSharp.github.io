@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0"><title>Image</title><meta property="og:title" content="Image"><meta property="twitter:title" content="Image"><meta property="twitter:card" content="summary_large_image"><meta property="og:url" content="http://staticsharp.github.io/Components/ImageComponent/ru"><meta property="twitter:url" content="http://staticsharp.github.io/Components/ImageComponent/ru"><meta property="description" content="StaticSharp Image component."><meta property="og:description" content="StaticSharp Image component."><meta property="twitter:description" content="StaticSharp Image component."><meta property="og:type" content="website"><meta property="og:image" content="http://staticsharp.github.io/Assets/4118C156A3C0103152F54A524DB8EC50.jpg"><meta property="og:image:width" content="1920"><meta property="og:image:height" content="1330"><meta property="twitter:image" content="http://staticsharp.github.io/Assets/4118C156A3C0103152F54A524DB8EC50.jpg"><script>function ToCssSize(value) {
-    return (value!=undefined) ? value + "px" : ""
+    return (value!=undefined) ? value.toFixed(50) + "px" : ""
 }
 
 function ToCssValue(value) {
@@ -157,6 +157,9 @@ function Pop() {
     } else {
         delete currentParent
     }
+    if (typeof (element.AfterChildren) === "function")
+        element.AfterChildren()
+
 }
 
 
@@ -206,13 +209,13 @@ function ReactionBase(func) {
         _this.triggeringProperties.clear()
     }
 
-    _this.execute = function () {
+    _this.execute = function (object) {
         let oldReaction = Reaction.current
         Reaction.current = _this
         _this.unsubscribeFromTriggeringProperties()
 
         try {
-            let result = _this.func()
+            let result = _this.func(object)
             return result
         }
         finally {
@@ -431,7 +434,7 @@ function Property(value) {
                     var oldValue = _this.value
                     try {
                         _this.executionInProgress = true
-                        _this.value = _this.binding.execute()
+                        _this.value = _this.binding.execute(_this.object)
                         
                     } finally {
                         _this.executionInProgress = false
@@ -600,9 +603,7 @@ Object.defineProperty(Object.prototype, "Reactive", {
                 proxy[key] = value                
             }
         }
-        if (d) d.end()
-
-
+        d.end()
     }
 });
 
@@ -773,62 +774,6 @@ Object.defineProperty(Object.prototype, "Events", {
     }*/
 });
 
-
-
-
-/*function CreatePage() {
-    let result = CreateInplace(document.body,Page)
-    result.Content = function (parent) {
-        let result = Create(ScrollLayout)
-        result.Parent = parent
-        result.Content = function (parent) {
-            let result = Create(parent, Column)
-            return result
-        }(result)
-
-        result.AddChild()
-
-        return result
-    }(result)
-
-    Create(undefined, Page, (parent) => {
-        parent.TopBar = Create(parent, Paragraph)
-            .AddChild((parent) => {
-
-            })
-
-        parent.Content = function(parent){
-            let result = Create(parent, ScrollLayout)
-            result.Content = function (parent) {
-                let result = Create(parent, Column)
-                return result
-            }(result)
-        }()
-
-
-        parent.Content = Create(parent, ScrollLayout).Modify((p) => {
-            p.Content =
-                Create(p, Column, (p) => {
-
-                })
-        })
-
-        parent.AddChild(
-            Create(parent, ScrollLayout, (parent) => {
-
-            })
-        )
-    })
-}*/
-
-
-
-
-
-
-
-
-
 function GetParentElementByPredicate(firstParentToCompare, predicate) {
     var p = firstParentToCompare
     while (p != undefined) {
@@ -911,9 +856,8 @@ function Hierarchical(element) {
         let i = element.FirstChild
         
         if (typeof id === "number") { 
-            for (let i = 0; i < id; i++) {                
+            for (let n = 0; n < id; n++) {                
                 i = i.NextSibling
-                console.warn(i)
             }
 
         } else {
@@ -934,6 +878,101 @@ function Hierarchical(element) {
 
 }
 
+function Color() {
+    let args = [...arguments]
+    let _this = this
+
+    _this.r = 0
+    _this.g = 0
+    _this.b = 0
+    _this.a = undefined
+
+    if (args.length == 0) {
+        return
+    }
+
+    if (args.length == 1) {
+        let input = args[0]
+        if (typeof input == 'number') {
+            _this.r = (input & 0xFF) / 255
+            _this.g = ((input & 0xFF00) >>> 8) / 255
+            _this.b = ((input & 0xFF0000) >>> 16) / 255
+            _this.a = ((input & 0xFF000000) >>> 24) / 255
+            return;
+        }
+
+        if (typeof input == 'string') {
+            
+            if (input.substr(0, 1) == "#") {
+                var collen = (input.length - 1) / 3;
+                var fact = [17, 1, 0.062272][collen - 1] / 255;
+                _this.r = parseInt(input.substr(1, collen), 16) * fact
+                _this.g = parseInt(input.substr(1 + collen, collen), 16) * fact
+                _this.b = parseInt(input.substr(1 + 2 * collen, collen), 16) * fact 
+                return
+            }
+
+            //} return input.split("(")[1].split(")")[0].split(",").map(x => +x)
+
+        }
+
+        console.warn("Color: Invalid arguments", input)
+    }
+
+    
+
+    if ((args.length >= 3) & (args.length <= 4)) {
+        if (args.slice(0, 3).some(x => (typeof x) != 'number')) {
+            console.warn("Color: Invalid arguments types", args)
+            return;
+        }
+
+        _this.r = args[0]
+        _this.g = args[1]
+        _this.b = args[2]
+
+        if (args.length == 4) {
+            if ((typeof args[3]) != 'number') {
+                console.warn("Color: Invalid arguments types", args)
+                return;
+            }
+            _this.a = args[3]
+        }
+        return
+    }
+    
+    console.warn("Color: Invalid arguments", args)
+
+}
+
+Color.prototype.toString = function () {
+    let a = this.a
+    if (a == undefined)
+        a = 1
+    return `rgba(${Math.round(255 * this.r)},${Math.round(255 * this.g)},${Math.round(255 * this.b)},${a})`
+}
+
+
+
+Color.Lerp = function (a, b, t) {
+    console.log(b)
+    return a.Lerp(b,t)
+}
+
+Color.prototype.Lerp = function (targetColor, amount) {
+    var bk = (1 - amount);
+    var a = First(this.a * bk + targetColor.a * amount, this.a, targetColor.a);
+    var r = this.r * bk + targetColor.r * amount;
+    var g = this.g * bk + targetColor.g * amount;
+    var b = this.b * bk + targetColor.b * amount;
+    return new Color(r, g, b, a);
+}
+
+Color.prototype.contrastColor = function (contrast = 1) {
+    var grayscale = (0.2125 * this.r) + (0.7154 * this.g) + (0.0721 * this.b);
+    var blackOrWhite = (grayscale > 0.5) ? new Color(0, 0, 0, 1) : new Color(1, 1, 1, 1);
+    return this.Lerp(blackOrWhite, contrast);
+}
 
 function BaseModifier(element) {
     Hierarchical(element)
@@ -1107,10 +1146,10 @@ function Block(element) {
         AbsoluteX: () => element.IsRoot ? 0 : Sum(element.Parent.AbsoluteX, element.Parent.ScrollXActual, element.X),
         AbsoluteY: () => element.IsRoot ? 0 : Sum(element.Parent.AbsoluteY, -element.Parent.ScrollYActual, element.Y),
 
-        Width: () => First(element.LayoutWidth, element.InternalWidth),
-        Height: () => First(element.LayoutHeight, element.InternalHeight),
+        Width: e => First(e.LayoutWidth, e.InternalWidth),
+        Height: e => First(e.LayoutHeight, e.InternalHeight),
 
-        
+        ClipByParent: false
         
     }
 
@@ -1122,10 +1161,37 @@ function Block(element) {
     WidthToStyle(element)
     HeightToStyle(element)
 
-    
+    //element.style.clipPath = "path('M 0 200 L 0,75 A 5,5 0,0,1 150,75 L 200 200 z')"
+
+    new Reaction(() => {
+        if (element.Parent == undefined)
+            return
+
+        if (element.ClipByParent) {
+
+            let left = -element.X
+            let top = -element.Y
+            let right = -element.Parent.Width + element.Width - element.X
+            let bottom = -element.Parent.Height + element.Height - element.Y
+            let offsets = `${top}px ${right}px ${bottom}px ${left}px`
+            let round = ""
+            if (
+                element.Parent.RadiusTopLeft != undefined
+                || element.Parent.RadiusTopRight != undefined
+                || element.Parent.RadiusBottomLeft != undefined
+                || element.Parent.RadiusBottomRight != undefined
+            ) {
+                round = ` round ${element.Parent.RadiusTopLeft || 0}px ${element.Parent.RadiusTopRight || 0}px ${element.Parent.RadiusBottomRight || 0}px ${element.Parent.RadiusBottomLeft || 0}px`
+            }
+            element.style.clipPath = `inset(${offsets}${round})`
+        } else {
+            element.style.clipPath = ""
+        }
+
+    })
+
 
     
-
 
 
     new Reaction(() => {
@@ -1227,23 +1293,20 @@ function Page(element) {
         window.UserInteracted = true
     }
 
-
-    function PrintWindowSize() {
+    /*function PrintWindowSize() {
         console.log("onresize", window.innerWidth, window.innerHeight, document.documentElement.clientWidth, document.documentElement.clientHeight, document.body.parentNode.clientHeight)
-    }
-    PrintWindowSize()
+    }*/
+    //PrintWindowSize()
 
     window.onresize = function (event) {
         //let startTime = performance.now()
         let d = Reaction.beginDeferred()
         element.LayoutWidth = getWindowWidth()
         element.LayoutHeight = getWindowHeight()
-        PrintWindowSize()
+        //PrintWindowSize()
         d.end()
         //console.log("resize", performance.now() - startTime)
     }
-
-
     
     let loadEventsToWait = 2
     function onLoadEvent() {
@@ -1530,84 +1593,45 @@ function Page(element) {
     });*/
 
 
-function Color() {
-    let args = [...arguments]
-    let _this = this
+var Storage = {}
 
-    _this.r = 0
-    _this.g = 0
-    _this.b = 0
-    _this.a = 1
+Storage.Elements = {}
 
-    if (args.length == 0) {
-        return
+Storage.Restore = function (name, getter) {
+
+    var valueString = localStorage.getItem(name)
+
+    if (Storage.Elements[name] == undefined) {
+        Storage.Elements[name] = new Reaction(() => {
+            var newValue = getter()
+            localStorage.setItem(name, typeof (newValue) + " " + newValue)
+        })
     }
 
-    if (args.length == 1) {
-        let input = args[0]
-        if (typeof input == 'number') {
-            _this.r = (input & 0xFF) / 255
-            _this.g = ((input & 0xFF00) >>> 8) / 255
-            _this.b = ((input & 0xFF0000) >>> 16) / 255
-            _this.a = ((input & 0xFF000000) >>> 24) / 255
-            return;
+    if (valueString != null) {
+        var seperator = valueString.indexOf(' ')
+        var type = valueString.substring(0, seperator)
+        var value = valueString.substring(seperator + 1)
+
+        if (type == "undefined") {
+            return undefined
+        }
+        if (type == "number") {
+            return Number(value)
+        }
+        if (type == "boolean") {
+            return (value === 'true')
+        }
+        if (type == "string") {
+            return value
         }
 
-        if (typeof input == 'string') {
-            
-            if (input.substr(0, 1) == "#") {
-                var collen = (input.length - 1) / 3;
-                var fact = [17, 1, 0.062272][collen - 1] / 255;
-                _this.r = parseInt(input.substr(1, collen), 16) * fact
-                _this.g = parseInt(input.substr(1 + collen, collen), 16) * fact
-                _this.b = parseInt(input.substr(1 + 2 * collen, collen), 16) * fact 
-                return
-            }
-
-            //} return input.split("(")[1].split(")")[0].split(",").map(x => +x)
-
-        }
-
-        console.warn("Color: Invalid arguments", input)
+    } else {
+        return undefined
     }
 
-    if (args.some(x => (typeof x) != 'number')) {
-        console.warn("Color: Invalid arguments types", args)
-        return;
-    }
-
-    if ((args.length >= 3) & (args.length <= 4)) {
-        _this.r = args[0]
-        _this.g = args[1]
-        _this.b = args[2]
-
-        if (args.length == 4) {
-            _this.a = args[3]
-        }
-        return
-    }
     
-    console.warn("Color: Invalid arguments", args)
 
-}
-
-Color.prototype.toString = function () {
-    return `rgba(${Math.round(255 * this.r)},${Math.round(255 * this.g)},${Math.round(255 * this.b)},${this.a})`
-}
-
-Color.prototype.lerp = function (targetColor, amount) {
-    var bk = (1 - amount);
-    var a = this.a * bk + targetColor.a * amount;
-    var r = this.r * bk + targetColor.r * amount;
-    var g = this.g * bk + targetColor.g * amount;
-    var b = this.b * bk + targetColor.b * amount;
-    return new Color(r, g, b, a);
-}
-
-Color.prototype.contrastColor = function (contrast = 1) {
-    var grayscale = (0.2125 * this.r) + (0.7154 * this.g) + (0.0721 * this.b);
-    var blackOrWhite = (grayscale > 0.5) ? new Color(0, 0, 0, 1) : new Color(1, 1, 1, 1);
-    return this.lerp(blackOrWhite, contrast);
 }
 var glass = undefined
 
@@ -2183,6 +2207,10 @@ function SetupPointerDrag(element, func) {
 
 
 
+
+
+
+
 function ScrollLayout(element) {
     Block(element)
 
@@ -2190,14 +2218,14 @@ function ScrollLayout(element) {
 
 
     element.Reactive = {
-        InternalWidth: () => element.Content.InternalWidth,
-        InternalHeight: () => element.Content.InternalHeight,
+        InternalWidth: () => Sum(element.Content.InternalWidth, element.MarginLeft, element.MarginRight),
+        InternalHeight: () => Sum(element.Content.InternalHeight, element.TopOffset, element.BottomOffset),
         //Content: () => element.Child("Content"),
 
-        MarginLeft: () => (element.PaddingLeft!=undefined) ? 0 : element.Content.MarginLeft,
+        /*MarginLeft: () => (element.PaddingLeft!=undefined) ? 0 : element.Content.MarginLeft,
         MarginTop: () => (element.PaddingTop != undefined) ? 0 : element.Content.MarginTop,
         MarginRight: () => (element.PaddingRight != undefined) ? 0 : element.Content.MarginRight,
-        MarginBottom: () => (element.PaddingBottom != undefined) ? 0 : element.Content.MarginBottom,
+        MarginBottom: () => (element.PaddingBottom != undefined) ? 0 : element.Content.MarginBottom,*/
 
         LeftOffset: () => CalcOffset(element, element.Content, "Left"),
         RightOffset: () => CalcOffset(element, element.Content, "Right"),
@@ -2208,15 +2236,14 @@ function ScrollLayout(element) {
         ContentAreaHeight: () => element.Height - element.TopOffset - element.BottomOffset,
 
         ScrollX: undefined,
-        ScrollY: undefined,
+        ScrollY: undefined, //Storage.Store("scroll", () => element.ScrollYActual),
 
         ScrollXActual: 0,
         ScrollYActual: 0,
 
         ScrollBarThickness: 4,
         ScrollBarMargin: 2,
-
-        ShowScrollBars: !window.Touch
+        ShowScrollBars: () => !window.Touch
     }
 
     
@@ -2244,13 +2271,13 @@ function ScrollLayout(element) {
         Height: () => element.ScrollBarThickness,        
     }
 
-    SetupPointerDrag(verticalThumb, (x, y) => {
+    /*SetupPointerDrag(verticalThumb, (x, y) => {
         scrollable.scrollTop += y / verticalThumb.ThumbPositionScale
     })
 
     SetupPointerDrag(horizontalThumb, (x, y) => {
         scrollable.scrollLeft += x / horizontalThumb.ThumbPositionScale
-    })
+    })*/
 
 
     let scrollable = document.createElement("scrollable")
@@ -2258,7 +2285,9 @@ function ScrollLayout(element) {
 
     scrollable.style.touchAction = "manipulation"
     scrollable.style.overflow = "auto"
-    //scrollable.style.outline = "0.1px solid #f00"
+
+
+    
     
     new Reaction(() => {
         scrollable.style.left = ToCssSize(element.LeftOffset)
@@ -2266,7 +2295,6 @@ function ScrollLayout(element) {
         scrollable.style.width = ToCssSize(element.ContentAreaWidth)
         scrollable.style.height = ToCssSize(element.ContentAreaHeight)
     })
-
 
 
     scrollable.Events.Scroll = () => {
@@ -2283,15 +2311,14 @@ function ScrollLayout(element) {
         element.Content.LayoutHeight = () => Max(element.Content.InternalHeight, element.ContentAreaHeight)
     })
 
+    new Reaction(() => {
+        window.requestAnimationFrame(() => {
+            scrollable.scrollTop = element.ScrollY
+            scrollable.scrollLeft = element.ScrollX
+        });
+    })
 
-   /*OnChanged(
-        () => element.Content,
-        (p, c) => {
-            if (c) {                
-                
-            }
-        }
-    )*/
+
 
 
 }
@@ -2465,37 +2492,14 @@ function Paragraph(element) {
 
     }
 
-    /*new Reaction(() => {
-        console.log(element, element.Child(0))
-    })*/
-
-
-    /*new Reaction(() => {
-        let l = element.PaddingLeft
-        let r = element.PaddingRight
-        let w = element.Width
-        if (l + r > w) {
-            let m = w / (l + r)
-            l *= m
-            r *= m
-        }
-        element.style.paddingLeft = ToCssSize(l)
-        element.style.paddingRight = ToCssSize(r)
-    })
-
-    new Reaction(() => {
-        element.style.paddingTop = ToCssSize(element.PaddingTop)
-    })
-    new Reaction(() => {
-        element.style.paddingBottom = ToCssSize(element.PaddingBottom)
-    })*/
-
 
     new Reaction(() => {
 
         const testFontSize = 128;
 
         let content = element.children[0]
+
+        content.classList.add("inline-container")
 
         //content.style.position = "initial"
         content.style.fontSize = testFontSize + "px";
@@ -2524,8 +2528,6 @@ function Paragraph(element) {
         Justify,
         JustifyIncludingLastLine
          */
-        
-
         if (element.TextAlignmentHorizontal == "JustifyIncludingLastLine") {
             content.style.textAlign = "justify"
             content.style.textAlignLast = "justify"
@@ -2541,13 +2543,8 @@ function Paragraph(element) {
 
 
     new Reaction(() => {
-        //console.log("element.HierarchyFontSize", element.HierarchyFontSize, element)
-        //console.log("element.Modifier", element, element.Modifier)
-        //console.log("element.Modifier.HierarchyFontSize", element, element.Modifier.HierarchyFontSize)
         element.style.width = ToCssSize(element.Width)
-
         let content = element.children[0]
-
         content.style.transformOrigin = ""
         content.style.transform = ""
         content.style.width = ""
@@ -2557,10 +2554,7 @@ function Paragraph(element) {
 
         let minContentWidthWithPaddings = Sum(element.MinContentWidth, element.PaddingLeft, element.PaddingRight)
 
-        if (minContentWidthWithPaddings > element.Width) {
-            //element.title = "element.MinContentWidth > element.Width"
-
-            
+        if (minContentWidthWithPaddings > element.Width) {          
 
             let scale = Sum(element.Width, -element.PaddingLeft, -element.PaddingRight) / element.MinContentWidth
 
@@ -2572,15 +2566,12 @@ function Paragraph(element) {
             } else {
                 content.style.display = "none"
                 element.InternalHeight = Sum(element.PaddingTop, element.PaddingBottom)
-            }
-
-            
+            }            
             return
         }
 
         let maxContentWidthWithPaddings = Sum(element.MaxContentWidth, element.PaddingLeft, element.PaddingRight)
         if (Math.abs(element.Width - maxContentWidthWithPaddings) < 0.001) {
-            //element.title = "element.Width == element.MaxContentWidth"
 
             element.InternalHeight = Sum(element.MinContentHeight, element.PaddingTop, element.PaddingBottom) 
             content.style.width = "max-content"
@@ -2599,21 +2590,20 @@ function Paragraph(element) {
     HeightToStyle(element)
 }
 
+function ParagraphBase(element) {
+
+    Paragraph(element)
+}
 
 function Image(element) {
     Block(element)
 
-
-
-    element.Reactive = {        
+    element.Reactive = {
 
         Aspect: element.dataset.width / element.dataset.height,
 
         InternalWidth: () => First(element.Height * element.Aspect, element.dataset.width),
         InternalHeight: () => First(element.Width / element.Aspect, element.dataset.height),
-        //Width: () => element.LayoutWidth || (element.Height * element.Aspect) || element.dataset.width,
-
-        //Height: () => element.LayoutHeight || (element.Width / element.Aspect) || element.dataset.height,
     }
 
     new Reaction(() => {
@@ -2625,9 +2615,7 @@ function Image(element) {
         if (thumbnail) {
             thumbnail.style.display = "block"
         }
-
     })
-
 
     
 }
@@ -2780,6 +2768,7 @@ function RowBuilder(element) {
 
     _this.layout = function (child) {
         let spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
+        
         let spaceRight = Max(endMargin, child.MarginRight)
         if (child.isBlock) {
 
@@ -2862,7 +2851,7 @@ function Row(element) {
 
         let builder = new RowBuilder(element);
 
-        for (let child of element.children) {
+        for (let child of element.Children) {
             builder.layout(child)
 
         }
@@ -2887,7 +2876,7 @@ function Row(element) {
    
 }
 
-body.js {
+.js {
     //display: none;
     visibility: hidden;
     position: absolute;
@@ -2910,10 +2899,10 @@ body.js {
 
 
 
-body.js * {
+.js * {
     scrollbar-width: none;
 }
-body.js *::-webkit-scrollbar {
+.js *::-webkit-scrollbar {
     display: none;
 }
 
@@ -2923,7 +2912,7 @@ head {
 
 
 
-body.js * {
+.js * {
     tab-size: 4;
     touch-action: inherit;
     display: block;
@@ -2953,99 +2942,68 @@ body.js * {
     white-space: inherit;
 }
 
-body.js a * {
+.js a * {
     //text-decoration-line: underline;
 }
 
-    /*w::after {
-        color: black;
-        content: "\00a0";
-    }*/
-    /*p {
-        margin-left: -10px;
-        //display: flex;
-        //flex-wrap: wrap;
-        //gap: 1em;
-    }
-
-    span {
-        color: black;
-        //margin: 0 -1em 0 0;
-    }
-
-    span {
-        display: inline-block;
-        //flex-shrink: 1;
-        //word-wrap: break-word;
-    }
 
 
-
-    span::after {
-        flex-grow: 1;
-        display: inline-block;
-        //margin-right: -10px;
-        white-space: pre-line;
-        content: "\00a0";
-        flex-shrink: 5;
-    }*/
-
-    * {
-    //outline: 0.1px solid #f00 !important;
-}
-/*a:hover {
-        opacity: 0.8;
-    }
-
-    a:visited {
-        text-decoration-color: inherit;
+    /** {
+        outline: 0.1px solid #f00 !important;
     }*/
 
 
 
 
-body.js paragraph p {
+
+.inline-container {
     white-space: break-spaces;
 }
 
-body.js paragraph>p * {
+.inline-container * {
+    
     position: static;
     display: inline;
 }
 
-body.js paragraph > p a * {
+.inline-container a * {
     text-decoration-line: underline;
-}</style><style>@font-face {font-family: Roboto;font-weight: 700;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-@font-face {font-family: Roboto;font-weight: 300;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-@font-face {font-family: Roboto;font-weight: 300;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-@font-face {font-family: Roboto;font-weight: 400;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-</style></head><body style="font-family:Roboto;font-weight:400;font-style:normal;"><script>{let element = Constructor(PageSideMenus);element.Reactive={ContentWidth:800,SideBarsIconsSize:48,FontSize:16}}</script><material-design-icon-block data-property="LeftSideBarIcon" data-width="24" data-height="24"><script>{let element = Constructor(MaterialDesignIcon,MaterialDesignIconBlock);element.Reactive={BackgroundColor:new Color(0xFF7A596D),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+}
+
+/*body.js paragraph>p * {
+    
+}*/
+
+</style><style>@font-face {font-family: 'Roboto';font-weight: 700;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+@font-face {font-family: 'Roboto';font-weight: 300;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+@font-face {font-family: 'Roboto';font-weight: 400;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+</style></head><body style="font-family:Roboto;font-weight:400;"><script>{let element = Constructor(PageSideMenus);element.Reactive={ContentWidth:800,SideBarsIconsSize:48,FontSize:16}}</script><material-design-icon-block data-property="LeftSideBarIcon" data-width="24" data-height="24" style="font-family:;"><script>{let element = Constructor(MaterialDesignIcon,MaterialDesignIconBlock);element.Reactive={BackgroundColor:new Color(0.42745098039215684,0.34901960784313724,0.47843137254901963),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
   <path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" />
-</svg><script>Pop()</script></material-design-icon-block><scroll-layout data-property="LeftSideBar"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0xFF606060)}}</script><a href="../CodeComponent/ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Code
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Image
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../MaterialDesignIconsComponent/ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Material Design Icons
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../ParagraphComponent/ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Paragraph
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../ScrollLayoutComponent/ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Scroll Layout
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../VideoPlayer/ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Video Player
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><script>Pop()</script></scroll-layout><material-design-icon-block data-property="RightSideBarIcon" data-width="24" data-height="24"><script>{let element = Constructor(MaterialDesignIcon,MaterialDesignIconBlock);element.Reactive={BackgroundColor:new Color(0xFF24597A),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+</svg><script>Pop()</script></material-design-icon-block><scroll-layout data-property="LeftSideBar" style="font-family:;"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content" style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0.25,0.25,0.25)}}</script><a href="../CodeComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Code
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Image
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../MaterialDesignIconsComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Material Design Icons
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../ParagraphComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Paragraph
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../ScrollLayoutComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Scroll Layout
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="../VideoPlayer/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Video Player
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><script>Pop()</script></scroll-layout><material-design-icon-block data-property="RightSideBarIcon" data-width="24" data-height="24" style="font-family:;"><script>{let element = Constructor(MaterialDesignIcon,MaterialDesignIconBlock);element.Reactive={BackgroundColor:new Color(0.47843137254901963,0.34901960784313724,0.1411764705882353),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
   <path d="M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z" />
-</svg><script>Pop()</script></material-design-icon-block><column data-property="RightSideBar"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0xFF24597A)}}</script><a href="en" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>En
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ru" target="_self" style="display:contents;"><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Ru
-</p><block data-child><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:() => element.ParentBlock.HierarchyForegroundColor,Visibility:() => (element.ParentBlock.Hover?0.1:0),Depth:-1,Y:() => First(element.MarginTop,0),Height:() => Sum(element.ParentBlock.Height,(-element.MarginTop),(-element.MarginLeft)),X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><scroll-layout data-property="Content"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content"><script>{let element = Constructor(Column);}</script><paragraph data-child data-property="TopBar" style="font-weight:200;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={Height:() => Max(element.Root.SideBarsIconsSize,element.InternalHeight),TextAlignmentHorizontal:"Center",MarginTop:0,MarginBottom:0,FontSize:() => element.Root.SideBarsIconsSize}}</script><p>Image
-</p><script>Pop()</script></paragraph><image-block data-child data-property="MainVisual" data-width="1920" data-height="1330"><script>{let element = Constructor(Image);}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#s0"></use><use href="#s0" filter="url(#s2)"></use><g filter="url(#s1)"><use href="#s0"></use><use href="#s0" filter="url(#s2)"></use></g></svg><img width="100%" height="100%" src="../../Assets/4118C156A3C0103152F54A524DB8EC50.jpg"></content><script>Pop()</script></image-block><paragraph data-child data-property="Description"><script>{let element = Constructor(Paragraph);}</script><p>StaticSharp Image component.
-</p><script>Pop()</script></paragraph><block data-child><script>{let element = Constructor(Block);element.Reactive={Height:1,BackgroundColor:new Color(0xFF808080),MarginBottom:20}}</script><script>Pop()</script></block><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Hot reload
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Native formats jpg, png, svg
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Atuo convertions psd->jpg:80
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Manual convertions and resize
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Thumbnails
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-weight:300;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:60}}</script><p>Psd format support
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>Psd convertion is supported using <a href="https://github.com/dlemstra/Magick.NET" target="_self" style="display:contents;"><inline data-child><script>{let element = Constructor(Inline);}</script>Magick.NET<script>Pop()</script></inline></a> library.
-</p><script>Pop()</script></paragraph><image-block data-child data-width="1920" data-height="1330"><script>{let element = Constructor(Image);}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#s3"></use><use href="#s3" filter="url(#s2)"></use><g filter="url(#s1)"><use href="#s3"></use><use href="#s3" filter="url(#s2)"></use></g></svg><img width="100%" height="100%" src="../../Assets/375CE894D1903DEE4930EB9344A90C7F.jpg"></content><script>Pop()</script></image-block><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><row data-child data-property="Footer"><script>{let element = Constructor(Row);element.Reactive={BackgroundColor:new Color(0xFF705035),PaddingTop:20,PaddingBottom:20,X:() => First(element.MarginLeft,0),Width:() => Sum(element.ParentBlock.Width,(-element.MarginLeft),(-element.MarginRight)),PaddingLeft:() => element.ParentBlock.PaddingLeft,PaddingRight:() => element.ParentBlock.PaddingRight}}</script><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-weight:700;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Links
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут ссылки
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-weight:700;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 2
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут еще ссылки
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-weight:700;font-style:normal;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 3
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>и тут будут ссылки
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);}</script><p>line 2
-</p><script>Pop()</script></paragraph><paragraph data-child><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>line 3
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><script>Pop()</script></row><script>Pop()</script></column><script>Pop()</script></scroll-layout><script>Pop()</script><svg style="display:none;"><defs><image id="s0" href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wgARCAAWACADASIAAhEBAxEB/8QAGQABAAMBAQAAAAAAAAAAAAAAAAEDBAUC/8QAFwEBAQEBAAAAAAAAAAAAAAAAAAIBA//aAAwDAQACEAMQAAAB025vXKp53TpAkgx//8QAGxAAAwEAAwEAAAAAAAAAAAAAAAECAxASIRP/2gAIAQEAAQUC+tE22a6XJeujJRXsNLq0KuE/Gz//xAAVEQEBAAAAAAAAAAAAAAAAAAAgIf/aAAgBAwEBPwGD/8QAFxEBAAMAAAAAAAAAAAAAAAAAAQACEP/aAAgBAgEBPwEsxd//xAAbEAABBAMAAAAAAAAAAAAAAAAAARARMQJBUf/aAAgBAQAGPwIs6baDF1mn/8QAGxAAAwADAQEAAAAAAAAAAAAAAAEREFFhgUH/2gAIAQEAAT8hU/gyjVeDOJ+MI4C6G3w7qTDrQ30ZSDIrbhJU/9oADAMBAAIAAwAAABAI0AP/xAAXEQADAQAAAAAAAAAAAAAAAAAAAREQ/9oACAEDAQE/EIIt/8QAFhEBAQEAAAAAAAAAAAAAAAAAAQAR/9oACAECAQE/EGMuwoy3/8QAHhABAAMAAgIDAAAAAAAAAAAAAQARITFxQVFhgaH/2gAIAQEAAT8QYNt1B7B4NSs8PpSdwJukeuWfsz21pPbK6hHLNVmtVsFM06mTWfLHs0ToK54fqGKlcvMuUtean//Z"></image><filter id="s1"><feGaussianBlur stdDeviation="0,5 0"></feGaussianBlur></filter><filter id="s2"><feGaussianBlur stdDeviation="0 0,5"></feGaussianBlur></filter><image id="s3" href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wgARCAAWACADASIAAhEBAxEB/8QAGQAAAgMBAAAAAAAAAAAAAAAAAAQBAgMF/8QAFwEAAwEAAAAAAAAAAAAAAAAAAAECA//aAAwDAQACEAMQAAABZ1ynOq87ppCaAhxQEf/EABsQAAMBAQADAAAAAAAAAAAAAAABAgMSERMi/9oACAEBAAEFAvbRNtmulyXroyUjRfDS4z6pTodHXkbP/8QAFREBAQAAAAAAAAAAAAAAAAAAICH/2gAIAQMBAT8Bg//EABgRAAIDAAAAAAAAAAAAAAAAAAABEBEh/9oACAECAQE/AU2aXH//xAAdEAABAwUBAAAAAAAAAAAAAAAAARAxAhEhIkFR/9oACAEBAAY/AiT061kKTZCDKP8A/8QAHBABAAICAwEAAAAAAAAAAAAAAQARIUExYYEQ/9oACAEBAAE/ISvUSpJ5E6Hx8RSMaguAavqXjdVEjB5AoxxHmAicVGo6lRc//9oADAMBAAIAAwAAABAgnyP/xAAXEQADAQAAAAAAAAAAAAAAAAAAAREQ/9oACAEDAQE/EIKk5v8A/8QAFxEBAQEBAAAAAAAAAAAAAAAAAQARIf/aAAgBAgEBPxBT1l6dhbK3/8QAHhABAQACAgIDAAAAAAAAAAAAAREAITFBUXGBkcH/2gAIAQEAAT8QYN16weweDbJnh8InvAmxh6qw26fN3jdFUVWo3fuYQQgtTbO8Z2REs5AWAG+8Dc0EAvH6XEr1HXxllLO5n//Z"></image></defs></svg></body></html>
+</svg><script>Pop()</script></material-design-icon-block><column data-property="RightSideBar" style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0.47843137254901963,0.34901960784313724,0.1411764705882353)}}</script><a href="en" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>En
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Ru
+</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><scroll-layout data-property="Content" style="font-family:;"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child data-property="TopBar" style="font-family:;font-weight:200;"><script>{let element = Constructor(Paragraph);element.Reactive={Height:(e) => Max(e.Root.SideBarsIconsSize,e.InternalHeight),TextAlignmentHorizontal:"Center",MarginTop:0,MarginBottom:0,FontSize:(e) => e.Root.SideBarsIconsSize}}</script><p>Image
+</p><script>Pop()</script></paragraph><image-block data-child data-property="MainVisual" data-width="1920" data-height="1330" style="font-family:;"><script>{let element = Constructor(Image);}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use><g filter="url(#A8D38B2D8722AFE8)"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use></g></svg><img width="100%" height="100%" src="../../Assets/4118C156A3C0103152F54A524DB8EC50.jpg"></content><script>Pop()</script></image-block><paragraph data-child data-property="Description" style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>StaticSharp Image component.
+</p><script>Pop()</script></paragraph><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:1,BackgroundColor:new Color(0.5019607843137255,0.5019607843137255,0.5019607843137255),MarginBottom:20}}</script><script>Pop()</script></block><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Hot reload
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Native formats jpg, png, svg
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Atuo convertions psd->jpg:80
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Manual convertions and resize
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Thumbnails
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;font-weight:300;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:60}}</script><p>Psd format support
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Psd convertion is supported using <a href="https://github.com/dlemstra/Magick.NET" target="_self" style="display:contents;"><inline data-child style="font-family:;"><script>{let element = Constructor(Inline);}</script>Magick.NET<script>Pop()</script></inline></a> library.
+</p><script>Pop()</script></paragraph><image-block data-child data-width="1920" data-height="1330" style="font-family:;"><script>{let element = Constructor(Image);}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#1B743BBBF3C20498"></use><use href="#1B743BBBF3C20498" filter="url(#A65402ECAD179F53)"></use><g filter="url(#A8D38B2D8722AFE8)"><use href="#1B743BBBF3C20498"></use><use href="#1B743BBBF3C20498" filter="url(#A65402ECAD179F53)"></use></g></svg><img width="100%" height="100%" src="../../Assets/E06C5FA6E672C568DBCBB99891E86DF4.pjpeg"></content><script>Pop()</script></image-block><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><row data-child data-property="Footer" style="font-family:;"><script>{let element = Constructor(Row);element.Reactive={BackgroundColor:new Color(0.20784313725490197,0.3137254901960784,0.4392156862745098),PaddingTop:20,PaddingBottom:20,X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight)),PaddingLeft:(e) => e.ParentBlock.PaddingLeft,PaddingRight:(e) => e.ParentBlock.PaddingRight}}</script><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Links
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут ссылки
+</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 2
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут еще ссылки
+</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 3
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>и тут будут ссылки
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>line 2
+</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>line 3
+</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><script>Pop()</script></row><script>Pop()</script></column><script>Pop()</script></scroll-layout><script>Pop()</script><svg style="display:none;"><defs><image href="data:application/octet-stream;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wgARCAAWACADASIAAhEBAxEB/8QAGQAAAgMBAAAAAAAAAAAAAAAAAAMBAgQF/8QAFwEAAwEAAAAAAAAAAAAAAAAAAAECA//aAAwDAQACEAMQAAAB0tVOdV529QnAQ4oCP//EABwQAAMBAAIDAAAAAAAAAAAAAAABAgMSIRETIv/aAAgBAQABBQL20TbZrpcl66MlI0Xxr1lPczocjl5Gz//EABcRAAMBAAAAAAAAAAAAAAAAAAAQIWH/2gAIAQMBAT8Bhj//xAAXEQEBAQEAAAAAAAAAAAAAAAABABEQ/9oACAECAQE/ARZ23n//xAAcEAACAgIDAAAAAAAAAAAAAAAAARAxAhEhQVH/2gAIAQEABj8CLPTuNITxsWyjlT//xAAcEAEAAgIDAQAAAAAAAAAAAAABABEhQTFhgRD/2gAIAQEAAT8hK9RKknkTofHxFIxqC4Bq+pc44VxAuGd4gUY4jzAROKjUdSouf//aAAwDAQACAAMAAAAQIB8j/8QAFxEBAAMAAAAAAAAAAAAAAAAAEQABEP/aAAgBAwEBPxAhp1//xAAYEQEBAQEBAAAAAAAAAAAAAAABABEhMf/aAAgBAgEBPxBT1l62Fsrf/8QAHhABAQACAgMBAQAAAAAAAAAAAREAITFBUXGRgcH/2gAIAQEAAT8QYN16weweDbJnh8InvAmxh6qw26fN3jdFUVWo3fswqwRDS8F+ZGszTTICwA33gbmggF4/pcSvUdfmWUs7mf/Z" id="1B743BBBF3C20498"></image><image href="data:application/octet-stream;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wgARCAAWACADASIAAhEBAxEB/8QAGQABAAMBAQAAAAAAAAAAAAAAAAEDBAUC/8QAFwEBAQEBAAAAAAAAAAAAAAAAAAIBA//aAAwDAQACEAMQAAAB025vXKp53TpAkgx//8QAGxAAAwEAAwEAAAAAAAAAAAAAAAECAxASIRP/2gAIAQEAAQUC+tE22a6XJeujJRXsNLq0KuE/Gz//xAAVEQEBAAAAAAAAAAAAAAAAAAAgIf/aAAgBAwEBPwGD/8QAFxEBAAMAAAAAAAAAAAAAAAAAAQACEP/aAAgBAgEBPwEsxd//xAAbEAABBAMAAAAAAAAAAAAAAAAAARARMQJBUf/aAAgBAQAGPwIs6baDF1mn/8QAGxAAAwADAQEAAAAAAAAAAAAAAAEREFFhgUH/2gAIAQEAAT8hU/gyjVeDOJ+MI4C6G3w7qTDrQ30ZSDIrbhJU/9oADAMBAAIAAwAAABAI0AP/xAAXEQADAQAAAAAAAAAAAAAAAAAAAREQ/9oACAEDAQE/EIIt/8QAFhEBAQEAAAAAAAAAAAAAAAAAAQAR/9oACAECAQE/EGMuwoy3/8QAHhABAAMAAgIDAAAAAAAAAAAAAQARITFxQVFhgaH/2gAIAQEAAT8QYNt1B7B4NSs8PpSdwJukeuWfsz21pPbK6hHLNVmtVsFM06mTWfLHs0ToK54fqGKlcvMuUtean//Z" id="7F76A4FA6725CA56"></image><filter id="A65402ECAD179F53"><feGaussianBlur stdDeviation="0 0.5"></feGaussianBlur></filter><filter id="A8D38B2D8722AFE8"><feGaussianBlur stdDeviation="0.5 0"></feGaussianBlur></filter></defs></svg></body></html>
