@@ -1105,6 +1105,24 @@ function CalcOffset(container, child, sideName) {
     return Math.max(child[marginName] - container[marginName], 0)
 }
 
+function GetClipRect(clippingElement, contentX, contentY, contentWidth, contentHeight ) {
+    let left = -contentX
+    let top = -contentY
+    let right = -clippingElement.Width + contentWidth + contentX
+    let bottom = -clippingElement.Height + contentHeight + contentY
+    let offsets = `${top}px ${right}px ${bottom}px ${left}px`
+    let round = ""
+    if (
+        clippingElement.RadiusTopLeft != undefined
+        || clippingElement.RadiusTopRight != undefined
+        || clippingElement.RadiusBottomLeft != undefined
+        || clippingElement.RadiusBottomRight != undefined
+    ) {
+        round = ` round ${clippingElement.RadiusTopLeft || 0}px ${clippingElement.RadiusTopRight || 0}px ${clippingElement.RadiusBottomRight || 0}px ${clippingElement.RadiusBottomLeft || 0}px`
+    }
+    return `inset(${offsets}${round})`
+}
+
 
 function Block(element) {
     
@@ -1169,7 +1187,10 @@ function Block(element) {
 
         if (element.ClipByParent) {
 
-            let left = -element.X
+            element.style.clipPath = GetClipRect(element.Parent, element.X, element.Y, element.Width, element.Height)
+
+
+            /*let left = -element.X
             let top = -element.Y
             let right = -element.Parent.Width + element.Width - element.X
             let bottom = -element.Parent.Height + element.Height - element.Y
@@ -1183,7 +1204,7 @@ function Block(element) {
             ) {
                 round = ` round ${element.Parent.RadiusTopLeft || 0}px ${element.Parent.RadiusTopRight || 0}px ${element.Parent.RadiusBottomRight || 0}px ${element.Parent.RadiusBottomLeft || 0}px`
             }
-            element.style.clipPath = `inset(${offsets}${round})`
+            element.style.clipPath = `inset(${offsets}${round})`*/
         } else {
             element.style.clipPath = ""
         }
@@ -2594,23 +2615,83 @@ function ParagraphBase(element) {
 
     Paragraph(element)
 }
-
-function Image(element) {
+function AspectBlock(element) {
     Block(element)
+
+    let nativeAspect = element.dataset.width / element.dataset.height
 
     element.Reactive = {
 
         Aspect: element.dataset.width / element.dataset.height,
-
         InternalWidth: () => First(element.Height * element.Aspect, element.dataset.width),
         InternalHeight: () => First(element.Width / element.Aspect, element.dataset.height),
+
+        Fit: "Inside",
+        GravityVertical: 0,
+        GravityHorizontal: 0,
     }
+
+
+
 
     new Reaction(() => {
         let content = element.children[0]
-        content.style.width = "100%"
-        content.style.height = "100%"
 
+        if (element.Fit == "Stretch") {
+
+            content.style.width = "100%"
+            content.style.height = "100%"
+
+        } else {
+            let realAspect = element.Width / element.Height
+
+            let x = 0
+            let y = 0
+            let contentWidth = element.Width
+            let contentHeight = element.Height
+
+            let sign = (element.Fit == "Inside") ? 1 : -1
+
+            //if (element.Fit == "Outside") {
+            if (sign * realAspect < sign * nativeAspect) {
+                contentHeight = contentWidth / nativeAspect
+                y = (element.Height - contentHeight) * (0.5 * sign * element.GravityVertical + 0.5)
+            } else {
+                contentWidth = contentHeight * nativeAspect
+                x = (element.Width - contentWidth) * (0.5 * sign * element.GravityHorizontal + 0.5)
+            }
+            /*} else {
+                if (realAspect < nativeAspect) {
+                    contentHeight = contentWidth / nativeAspect
+                    y = (element.Height - contentHeight) * (0.5 * element.GravityVertical + 0.5)
+                } else {
+                    contentWidth = contentHeight * nativeAspect
+                    x = (element.Width - contentWidth) * (0.5 * element.GravityHorizontal + 0.5)
+                }
+            }*/
+
+
+            content.style.top = ToCssSize(y)
+            content.style.left = ToCssSize(x)
+            content.style.width = ToCssSize(contentWidth)
+            content.style.height = ToCssSize(contentHeight)
+
+            content.style.clipPath = GetClipRect(element, x, y, contentWidth, contentHeight)
+
+        }
+
+    })
+
+
+}
+
+function Image(element) {
+    AspectBlock(element)
+
+
+
+    new Reaction(() => {
+        let content = element.children[0]
         let thumbnail = content.querySelector("#thumbnail")
         if (thumbnail) {
             thumbnail.style.display = "block"
