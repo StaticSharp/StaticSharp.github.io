@@ -2138,13 +2138,26 @@ function PageSideMenus(element) {
 
 }
 function MaterialDesignIcon(element) {
-    /*new Reaction(() => {
-        //element.style.fill = element.ForegroundColor
-    })*/
+
+    element.Reactive = {
+        StrokeColor: undefined,
+        StrokeWidth : undefined,
+    }
 
     new Reaction(() => {
-        let content = element.children[0]
-        content.style.fill = element.HierarchyForegroundColor
+        element.children[0].style.fill = element.HierarchyForegroundColor
+    })
+
+    new Reaction(() => {
+        console.log("element.StrokeColor", element.StrokeColor)
+
+        if (element.StrokeColor != undefined)
+            element.children[0].style.stroke = element.StrokeColor
+    })
+
+    new Reaction(() => {
+        if (element.StrokeWidth != undefined)
+            element.children[0].style.strokeWidth = ToCssSize(element.StrokeWidth)
     })
 }
 
@@ -2292,13 +2305,13 @@ function ScrollLayout(element) {
         Height: () => element.ScrollBarThickness,        
     }
 
-    /*SetupPointerDrag(verticalThumb, (x, y) => {
+    SetupPointerDrag(verticalThumb, (x, y) => {
         scrollable.scrollTop += y / verticalThumb.ThumbPositionScale
     })
 
     SetupPointerDrag(horizontalThumb, (x, y) => {
         scrollable.scrollLeft += x / horizontalThumb.ThumbPositionScale
-    })*/
+    })
 
 
     let scrollable = document.createElement("scrollable")
@@ -2741,7 +2754,6 @@ function AspectBlock(element) {
 
             let sign = (element.Fit == "Inside") ? 1 : -1
 
-            //if (element.Fit == "Outside") {
             if (sign * realAspect < sign * nativeAspect) {
                 contentHeight = contentWidth / nativeAspect
                 y = (element.Height - contentHeight) * (0.5 * sign * element.GravityVertical + 0.5)
@@ -2749,16 +2761,6 @@ function AspectBlock(element) {
                 contentWidth = contentHeight * nativeAspect
                 x = (element.Width - contentWidth) * (0.5 * sign * element.GravityHorizontal + 0.5)
             }
-            /*} else {
-                if (realAspect < nativeAspect) {
-                    contentHeight = contentWidth / nativeAspect
-                    y = (element.Height - contentHeight) * (0.5 * element.GravityVertical + 0.5)
-                } else {
-                    contentWidth = contentHeight * nativeAspect
-                    x = (element.Width - contentWidth) * (0.5 * element.GravityHorizontal + 0.5)
-                }
-            }*/
-
 
             content.style.top = ToCssSize(y)
             content.style.left = ToCssSize(x)
@@ -3772,7 +3774,7 @@ head {
 </p><script>Pop()</script></paragraph><paragraph data-child data-property="Description" style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>CodeBlock and CodeInline component.
 </p><script>Pop()</script></paragraph><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:1,BackgroundColor:new Color(0.5019607843137255,0.5019607843137255,0.5019607843137255),MarginBottom:20}}</script><script>Pop()</script></block><a href="../ImageComponent/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,FlipWidth:500}}</script><image-block data-property="First" data-width="1920" data-height="1330" style="font-family:;"><script>{let element = Constructor(Image);element.Reactive={ClipByParent:true}}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use><g filter="url(#A8D38B2D8722AFE8)"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use></g></svg><img width="100%" height="100%" src="../../Assets/4118C156A3C0103152F54A524DB8EC50.jpg"></content><script>Pop()</script></image-block><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Image
 </p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>StaticSharp Image component.
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:3}}</script><script>Pop()</script></material-shadow><script>Pop()</script></flipper></a><a href="../VideoPlayer/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,FlipWidth:500}}</script><player data-property="First" data-youtube-id="T4TEdzSLyi0" data-width="1280" data-height="720" data-sources="[{'size':{'x':640,'y':360},'url':'../../Assets/C6CC5F43B642138BAB2E5DDA9BE25D89.mp4'},{'size':{'x':1280,'y':720},'url':'../../Assets/FA86418F339E376894229D4942E71588.mp4'}]" style="font-family:;"><script>{let element = Constructor(Video);element.Reactive={Play:true,Mute:true,Loop:true,Controls:false,PreferPlatformPlayer:false,ClipByParent:true}}</script><script>Pop()</script></player><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Video Player
+</p><script>Pop()</script></paragraph><script>Pop()</script></column><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:3}}</script><script>Pop()</script></material-shadow><script>Pop()</script></flipper></a><a href="../VideoPlayer/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,FlipWidth:500}}</script><player data-property="First" data-youtube-id="T4TEdzSLyi0" data-width="1280" data-height="720" data-sources="[{'size':{'x':640,'y':360},'url':'../../Assets/5B7EEF81B063387A1ABF20EED0323D20.mp4'},{'size':{'x':1280,'y':720},'url':'../../Assets/E598546B0CD39C719EF36CAFE03071D9.mp4'}]" style="font-family:;"><script>{let element = Constructor(Video);element.Reactive={Play:true,Mute:true,Loop:true,Controls:false,PreferPlatformPlayer:false,ClipByParent:true}}</script><script>Pop()</script></player><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Video Player
 </p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>StaticSharp VideoPlayer component.
 </p><script>Pop()</script></paragraph><script>Pop()</script></column><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:3}}</script><script>Pop()</script></material-shadow><script>Pop()</script></flipper></a><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?0.5:1)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?1:2)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?1.5:3)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?2:4)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?2.5:5)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?3:6)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?3.5:7)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?4:8)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?4.5:9)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?5:10)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><row data-child data-property="Footer" style="font-family:;"><script>{let element = Constructor(Row);element.Reactive={BackgroundColor:new Color(0.20784313725490197,0.3137254901960784,0.4392156862745098),PaddingTop:20,PaddingBottom:20,X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight)),PaddingLeft:(e) => e.ParentBlock.PaddingLeft,PaddingRight:(e) => e.ParentBlock.PaddingRight}}</script><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Links
 </p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут ссылки

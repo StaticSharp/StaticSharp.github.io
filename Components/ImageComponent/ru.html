@@ -2138,13 +2138,26 @@ function PageSideMenus(element) {
 
 }
 function MaterialDesignIcon(element) {
-    /*new Reaction(() => {
-        //element.style.fill = element.ForegroundColor
-    })*/
+
+    element.Reactive = {
+        StrokeColor: undefined,
+        StrokeWidth : undefined,
+    }
 
     new Reaction(() => {
-        let content = element.children[0]
-        content.style.fill = element.HierarchyForegroundColor
+        element.children[0].style.fill = element.HierarchyForegroundColor
+    })
+
+    new Reaction(() => {
+        console.log("element.StrokeColor", element.StrokeColor)
+
+        if (element.StrokeColor != undefined)
+            element.children[0].style.stroke = element.StrokeColor
+    })
+
+    new Reaction(() => {
+        if (element.StrokeWidth != undefined)
+            element.children[0].style.strokeWidth = ToCssSize(element.StrokeWidth)
     })
 }
 
@@ -2292,13 +2305,13 @@ function ScrollLayout(element) {
         Height: () => element.ScrollBarThickness,        
     }
 
-    /*SetupPointerDrag(verticalThumb, (x, y) => {
+    SetupPointerDrag(verticalThumb, (x, y) => {
         scrollable.scrollTop += y / verticalThumb.ThumbPositionScale
     })
 
     SetupPointerDrag(horizontalThumb, (x, y) => {
         scrollable.scrollLeft += x / horizontalThumb.ThumbPositionScale
-    })*/
+    })
 
 
     let scrollable = document.createElement("scrollable")
@@ -2652,7 +2665,6 @@ function AspectBlock(element) {
 
             let sign = (element.Fit == "Inside") ? 1 : -1
 
-            //if (element.Fit == "Outside") {
             if (sign * realAspect < sign * nativeAspect) {
                 contentHeight = contentWidth / nativeAspect
                 y = (element.Height - contentHeight) * (0.5 * sign * element.GravityVertical + 0.5)
@@ -2660,16 +2672,6 @@ function AspectBlock(element) {
                 contentWidth = contentHeight * nativeAspect
                 x = (element.Width - contentWidth) * (0.5 * sign * element.GravityHorizontal + 0.5)
             }
-            /*} else {
-                if (realAspect < nativeAspect) {
-                    contentHeight = contentWidth / nativeAspect
-                    y = (element.Height - contentHeight) * (0.5 * element.GravityVertical + 0.5)
-                } else {
-                    contentWidth = contentHeight * nativeAspect
-                    x = (element.Width - contentWidth) * (0.5 * element.GravityHorizontal + 0.5)
-                }
-            }*/
-
 
             content.style.top = ToCssSize(y)
             content.style.left = ToCssSize(x)
