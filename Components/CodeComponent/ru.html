@@ -955,7 +955,6 @@ Color.prototype.toString = function () {
 
 
 Color.Lerp = function (a, b, t) {
-    console.log(b)
     return a.Lerp(b,t)
 }
 
@@ -2149,8 +2148,6 @@ function MaterialDesignIcon(element) {
     })
 
     new Reaction(() => {
-        console.log("element.StrokeColor", element.StrokeColor)
-
         if (element.StrokeColor != undefined)
             element.children[0].style.stroke = element.StrokeColor
     })
@@ -2399,10 +2396,13 @@ function Column(element) {
     })
 
     new Reaction(() => {
-        let previousMargin
-        let freeSpaceUnits
+        let previousMargin = undefined
+        let freeSpaceUnits = 0
         let freeSpacePixels
-        let contentHeight
+        let contentHeight = 0
+
+        let isFirstBlock = true
+        let lastChild = undefined
 
         function addElement(child, assignDimensions) {
             if (child.isSpace) {
@@ -2415,25 +2415,35 @@ function Column(element) {
             }
 
             if (child.isBlock) {
-                /*if (!child.Height) {
-                    console.log("Column !child.Height", child)
-                    return false
 
-                }*/
+                lastChild = child
+
+                if (isFirstBlock) {
+                    let offset = CalcOffset(element, child, "Top")
+                    //console.log(element)
+                    //console.log(contentHeight, offset)
+                    contentHeight += offset
+                } else {
+                    let offset = Max(child.MarginTop, previousMargin)
+                    contentHeight += offset
+                }
+                isFirstBlock = false
 
                 //console.log("child.Height", Max(child.Height, 0), child)
 
+                /*let margin = (previousMargin == undefined)
+                    ? CalcOffset()
+                    : Max(child.MarginTop, previousMargin)
+                contentHeight += margin*/
 
-                let margin = Max(child.MarginTop, previousMargin)
-                previousMargin = child.MarginBottom || 0
 
-
-                contentHeight += margin
                 if (assignDimensions) {
+                    //console.log("child.LayoutY", contentHeight)
                     child.LayoutY = contentHeight
                 }
                 contentHeight += Max(child.Height, 0)
 
+                previousMargin = child.MarginBottom || 0
 
                 return true
             }
@@ -2441,10 +2451,7 @@ function Column(element) {
         }
 
 
-
-        previousMargin = element.PaddingTop || 0
-        freeSpaceUnits = 0
-        contentHeight = 0
+        
 
         for (let i of element.Children) {
             if (!addElement(i, false)) {
@@ -2452,11 +2459,11 @@ function Column(element) {
             }
         }
 
-        //console.log("ColumnAfter Reaction", element, element.LayoutChildren)
 
-        //Here "previousMargin" contains last-child.MarginBottom
-        contentHeight += Max(previousMargin, element.PaddingBottom)
-        //console.log("Vertical layout", element, contentHeight)
+        let bottomOffset = CalcOffset(element,lastChild,"Bottom")
+
+        contentHeight += bottomOffset// Max(previousMargin, element.PaddingBottom)
+
 
         previousMargin = element.PaddingTop || 0
         element.InternalHeight = contentHeight;
@@ -2464,8 +2471,8 @@ function Column(element) {
             return
 
         freeSpacePixels = element.Height - contentHeight;// Math.max( element.Height - contentHeight, 0)
-
-        if (freeSpacePixels < 0) {//overflow-y: overlay;
+        //console.log(element.Height, contentHeight, element)
+        /*if (freeSpacePixels < 0) {//overflow-y: overlay;
             element.style.overflowY = "auto"
             freeSpacePixels = 0
             if (!element.innerSizeHolder) {
@@ -2481,10 +2488,10 @@ function Column(element) {
                 element.removeChild(element.innerSizeHolder)
                 element.innerSizeHolder = undefined
             }
-        }
+        }*/
 
         //console.log("freeSpacePixels", freeSpacePixels)
-
+        isFirstBlock = true
         contentHeight = 0
 
         for (let i of element.Children) {
@@ -2634,62 +2641,52 @@ function Flipper(element) {
 
 
     element.Reactive = {
-        FlipWidth:  640,
+        Flipped: () => element.Width < 640,
+
         HorizontalSpace: 12,
         VerticalSpace: 12,
-        //First: () => element.First,
-        //Second: () => element.First.NextSibling
+
+        RightToLeft: false,
+        BottomToTop: false,
+
+        InversedDirection: () => element.Flipped ? element.BottomToTop : element.RightToLeft,
+
+        LayoutFirst: () => element.InversedDirection ? element.Second : element.First,
+        LayoutSecond: () => element.InversedDirection ? element.First : element.Second,
+
+
+        MarginTop: () => {
+            if (element.PaddingTop != undefined)
+                return undefined
+            if (element.Flipped)
+                return element.LayoutFirst.MarginTop
+            else
+                return Max(element.LayoutFirst.MarginTop, element.LayoutSecond.MarginTop)
+        },
+
+        MarginBottom: () => {
+            if (element.PaddingBottom != undefined)
+                return undefined
+            if (element.Flipped)
+                return element.LayoutSecond.MarginBottom
+            else
+                return Max(element.LayoutFirst.MarginBottom, element.LayoutSecond.MarginBottom)
+        },
+
     }
 
 
 
     new Reaction(() => {
 
-        if (element.Width > element.FlipWidth) {
-            let left = CalcOffset(element, element.First, "Left")
-            let right = CalcOffset(element, element.Second, "Right")
+        if (element.Flipped)   {
 
-            let top1 = CalcOffset(element, element.First, "Top")
-            let top2 = CalcOffset(element, element.Second, "Top")
+            element.LayoutFirst.LayoutHeight = undefined
+            element.LayoutSecond.LayoutHeight = undefined
 
-            let bottom1 = CalcOffset(element, element.First, "Bottom")
-            let bottom2 = CalcOffset(element, element.Second, "Bottom")
-
-            //let spaceLeft = Max(element.PaddingLeft, element.First.MarginLeft,0)
-            //let spaceRight = Max(element.PaddingRight, element.Second.MarginRight,0)
-            let spaceMid = Max(
-                element.First.MarginRight,
-                element.Second.MarginLeft,
-                element.HorizontalSpace
-            )
-
-            element.First.LayoutX = left
-            element.First.LayoutWidth = (element.Width - spaceMid) * 0.5 - left
-
-            element.Second.LayoutX = (element.Width + spaceMid) * 0.5 
-            element.Second.LayoutWidth = (element.Width - spaceMid) * 0.5 - right
-
-            element.First.LayoutY = top1
-            element.Second.LayoutY = top2
-
-            let height = Max(
-                element.First.InternalHeight + top1 + bottom1,
-                element.Second.InternalHeight + top2 + bottom2,
-            )
-
-            element.InternalHeight = height
-
-            element.First.LayoutHeight = element.Height - top1 - bottom1
-            element.Second.LayoutHeight = element.Height - top2 - bottom2
-
-        } else {
-
-            element.First.LayoutHeight = undefined
-            element.Second.LayoutHeight = undefined
-
-            let orderedChildren = [element.First, element.Second]
+            let orderedChildren = [element.LayoutFirst, element.LayoutSecond]
             let margin = First(element.PaddingTop, 0)
-            
+
             let y = 0
             for (let i of orderedChildren) {
                 i.LayoutHeight = undefined
@@ -2708,8 +2705,47 @@ function Flipper(element) {
                 margin = Max(i.MarginButtom, element.VerticalSpace, 0)
 
             }
-            
+
             element.InternalHeight = y + margin
+
+        } else {
+
+            let left = CalcOffset(element, element.LayoutFirst, "Left")
+            let right = CalcOffset(element, element.LayoutSecond, "Right")
+
+            let top1 = CalcOffset(element, element.LayoutFirst, "Top")
+            let top2 = CalcOffset(element, element.LayoutSecond, "Top")
+
+            let bottom1 = CalcOffset(element, element.LayoutFirst, "Bottom")
+            let bottom2 = CalcOffset(element, element.LayoutSecond, "Bottom")
+
+            //let spaceLeft = Max(element.PaddingLeft, element.First.MarginLeft,0)
+            //let spaceRight = Max(element.PaddingRight, element.Second.MarginRight,0)
+            let spaceMid = Max(
+                element.LayoutFirst.MarginRight,
+                element.LayoutSecond.MarginLeft,
+                element.HorizontalSpace
+            )
+
+            element.LayoutFirst.LayoutX = left
+            element.LayoutFirst.LayoutWidth = (element.Width - spaceMid) * 0.5 - left
+
+            element.LayoutSecond.LayoutX = (element.Width + spaceMid) * 0.5 
+            element.LayoutSecond.LayoutWidth = (element.Width - spaceMid) * 0.5 - right
+
+            element.LayoutFirst.LayoutY = top1
+            element.LayoutSecond.LayoutY = top2
+
+            let height = Max(
+                element.LayoutFirst.InternalHeight + top1 + bottom1,
+                element.LayoutSecond.InternalHeight + top2 + bottom2,
+            )
+
+            element.InternalHeight = height
+
+            element.LayoutFirst.LayoutHeight = element.Height - top1 - bottom1
+            element.LayoutSecond.LayoutHeight = element.Height - top2 - bottom2
+
         }
     })
 
@@ -3772,9 +3808,9 @@ head {
 </p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Ru
 </p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><scroll-layout data-property="Content" style="font-family:;"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child data-property="TopBar" style="font-family:;font-weight:200;"><script>{let element = Constructor(Paragraph);element.Reactive={Height:(e) => Max(e.Root.SideBarsIconsSize,e.InternalHeight),TextAlignmentHorizontal:"Center",MarginTop:0,MarginBottom:0,FontSize:(e) => e.Root.SideBarsIconsSize}}</script><p>Code
 </p><script>Pop()</script></paragraph><paragraph data-child data-property="Description" style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>CodeBlock and CodeInline component.
-</p><script>Pop()</script></paragraph><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:1,BackgroundColor:new Color(0.5019607843137255,0.5019607843137255,0.5019607843137255),MarginBottom:20}}</script><script>Pop()</script></block><a href="../ImageComponent/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,FlipWidth:500}}</script><image-block data-property="First" data-width="1920" data-height="1330" style="font-family:;"><script>{let element = Constructor(Image);element.Reactive={ClipByParent:true}}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use><g filter="url(#A8D38B2D8722AFE8)"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use></g></svg><img width="100%" height="100%" src="../../Assets/4118C156A3C0103152F54A524DB8EC50.jpg"></content><script>Pop()</script></image-block><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Image
+</p><script>Pop()</script></paragraph><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:1,BackgroundColor:new Color(0.5019607843137255,0.5019607843137255,0.5019607843137255),MarginBottom:20}}</script><script>Pop()</script></block><a href="../ImageComponent/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,Flipped:(e) => (e.Width<500)}}</script><image-block data-property="First" data-width="1920" data-height="1330" style="font-family:;"><script>{let element = Constructor(Image);element.Reactive={ClipByParent:true}}</script><content><svg id="thumbnail" width="100%" height="100%" viewBox="0 0 32 22" preserveAspectRatio="none" style="overflow:hidden;display:none;"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use><g filter="url(#A8D38B2D8722AFE8)"><use href="#7F76A4FA6725CA56"></use><use href="#7F76A4FA6725CA56" filter="url(#A65402ECAD179F53)"></use></g></svg><img width="100%" height="100%" src="../../Assets/4118C156A3C0103152F54A524DB8EC50.jpg"></content><script>Pop()</script></image-block><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Image
 </p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>StaticSharp Image component.
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:3}}</script><script>Pop()</script></material-shadow><script>Pop()</script></flipper></a><a href="../VideoPlayer/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,FlipWidth:500}}</script><player data-property="First" data-youtube-id="T4TEdzSLyi0" data-width="1280" data-height="720" data-sources="[{'size':{'x':640,'y':360},'url':'../../Assets/5B7EEF81B063387A1ABF20EED0323D20.mp4'},{'size':{'x':1280,'y':720},'url':'../../Assets/E598546B0CD39C719EF36CAFE03071D9.mp4'}]" style="font-family:;"><script>{let element = Constructor(Video);element.Reactive={Play:true,Mute:true,Loop:true,Controls:false,PreferPlatformPlayer:false,ClipByParent:true}}</script><script>Pop()</script></player><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Video Player
+</p><script>Pop()</script></paragraph><script>Pop()</script></column><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:3}}</script><script>Pop()</script></material-shadow><script>Pop()</script></flipper></a><a href="../VideoPlayer/ru" target="_self" style="display:contents;"><flipper data-child style="font-family:;"><script>{let element = Constructor(Flipper);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:10,Flipped:(e) => (e.Width<500)}}</script><player data-property="First" data-youtube-id="T4TEdzSLyi0" data-width="1280" data-height="720" data-sources="[{'size':{'x':640,'y':360},'url':'../../Assets/5B7EEF81B063387A1ABF20EED0323D20.mp4'},{'size':{'x':1280,'y':720},'url':'../../Assets/E598546B0CD39C719EF36CAFE03071D9.mp4'}]" style="font-family:;"><script>{let element = Constructor(Video);element.Reactive={Play:true,Mute:true,Loop:true,Controls:false,PreferPlatformPlayer:false,ClipByParent:true}}</script><script>Pop()</script></player><column data-property="Second" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child style="font-family:;font-weight:500;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:34}}</script><p>Video Player
 </p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>StaticSharp VideoPlayer component.
 </p><script>Pop()</script></paragraph><script>Pop()</script></column><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:3}}</script><script>Pop()</script></material-shadow><script>Pop()</script></flipper></a><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?0.5:1)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?1:2)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?1.5:3)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?2:4)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?2.5:5)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?3:6)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?3.5:7)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?4:8)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?4.5:9)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:50,MarginLeft:10,MarginRight:10,MarginTop:10,MarginBottom:10,Radius:3,BackgroundColor:new Color(1,1,1)}}</script><material-shadow data-child><script>{let element = Constructor(MaterialShadow);element.Reactive={Elevation:(e) => (e.ParentBlock.Hover?5:10)}}</script><script>Pop()</script></material-shadow><script>Pop()</script></block><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><row data-child data-property="Footer" style="font-family:;"><script>{let element = Constructor(Row);element.Reactive={BackgroundColor:new Color(0.20784313725490197,0.3137254901960784,0.4392156862745098),PaddingTop:20,PaddingBottom:20,X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight)),PaddingLeft:(e) => e.ParentBlock.PaddingLeft,PaddingRight:(e) => e.ParentBlock.PaddingRight}}</script><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Links
 </p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут ссылки
