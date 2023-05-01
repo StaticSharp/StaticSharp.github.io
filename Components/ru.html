@@ -1,3034 +1,455 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0"><title>Components</title><meta property="og:title" content="Components"><meta property="twitter:title" content="Components"><meta property="twitter:card" content="summary_large_image"><meta property="og:url" content="https://staticsharp.github.io/Components/ru"><meta property="twitter:url" content="https://staticsharp.github.io/Components/ru"><meta property="description" content="Компоненты для создания страниц."><meta property="og:description" content="Компоненты для создания страниц."><meta property="twitter:description" content="Компоненты для создания страниц."><meta property="og:type" content="website"><script>function ToCssSize(value) {
-    return (value!=undefined) ? value.toFixed(50) + "px" : ""
-}
-
-function ToCssValue(value) {
-    return (value != undefined) ? value : ""
-}
-
-function DepthToStyle(element) {
-    return new Reaction(() => {
-        element.style.zIndex = element.Depth
-    })
-}
-
-
-function XToStyle(element) {
-    return new Reaction(() => {
-        element.style.left = ToCssSize(element.X)
-    })
-}
-function YToStyle(element) {
-    return new Reaction(() => {
-        element.style.top = ToCssSize(element.Y)
-    })
-}
-
-function WidthToStyle(element) {
-    return new Reaction(() => {
-        element.style.width = ToCssSize(element.Width)
-    })
-}
-
-function HeightToStyle(element) {
-    return new Reaction(() => {
-        element.style.height = ToCssSize(element.Height)
-    })
-}
-
-
-
-function Try(func, defaultValue, exceptions) {
-    //console.log("try", func, defaultValue, exceptions)
-    try {
-        return func()
-    } catch (e) {
-        console.warn(e)
-        if (exceptions == undefined) {
-            return defaultValue
-        } else {
-            for (let i of exceptions) {
-                if (e instanceof i) {
-                    return defaultValue
-                }
-            }
-            throw e
-        }
-    }
-}
-function IsNaNOrNull(value) {
-    if (value === null) return true
-    return isNaN(value)
-}
-
-function Max() {
-    let result = undefined
-    for (let i of arguments) {
-        if (IsNaNOrNull(i)) continue;
-        if (result === undefined) {
-            result = i
-        } else {
-            result = Math.max(result, i)
-        }
-    }
-    return result
-}
-
-function Min() {
-    let result = undefined
-    for (let i of arguments) {
-        if (IsNaNOrNull(i)) continue;
-        if (result === undefined) {
-            result = i
-        } else {
-            result = Math.min(result, i)
-        }
-    }
-    return result
-}
-
-function Clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value))
-}
-
-function Sum() {
-    let resultValid = false
-    let result = 0
-    for (let i of arguments) {
-        if (IsNaNOrNull(i)) continue;
-        resultValid = true
-        result += i
-    }
-    return resultValid ? result : undefined
-}
-
-
-function First() {
-    for (let i of arguments) {
-        if (i === undefined) continue;
-        if (isNaN(i)) continue;
-        if (i === null) continue;
-        return i
-    }
-    return undefined
-}
-
-
-const SpaceTagName = "WS"
-const WordTagName = "W"
-function _deleteScript() {
-    let script = document.currentScript
-    let parent = script.parentElement
-    parent.removeChild(script)
-    return parent
-}
-
-var currentParent = undefined
-
-function Constructor() {
-    var element = _deleteScript()
-    element.Parent = currentParent
-    currentParent = element
-    
-    for (let i of arguments) {
-        i(element)
-    }
-
-    /*if (element.parentElement) {
-        if (element.parentElement.tagName == "OVERLAY") {
-            let overlay = element.parentElement
-            let parent = overlay.parentElement
-            //parent.removeChild(overlay)
-            //document.body.appendChild(element)
-            element.Parent = parent
-            parent.Overlay = element
-        } else {
-            element.Parent = element.parentElement
-        }
-    }*/
-
-    return element;
-}
-
-function Pop() {
-    let element = _deleteScript()
-    if (element.Parent) {
-        currentParent = element.Parent
-    } else {
-        delete currentParent
-    }
-    if (typeof (element.AfterChildren) === "function")
-        element.AfterChildren()
-
-}
-
-
-function CamelToKebab(value) {
-    return value.replace(
-        /[A-Z]+(?![a-z])|[A-Z]/g,
-        (substring, offset) => (offset ? "-" : "") + substring.toLowerCase()
-    )
-}
-
-
-function Create(parent, ...constructors) {
-    let primary = constructors[0]
-    let tagName = CamelToKebab(primary.name)
-    
-    let element = document.createElement(tagName)
-    parent.appendChild(element)
-    element.Parent = parent
-    for (let i of constructors) {
-        i(element)
-    }
-    return element;
-    
-}
-
-
-
-
-
-function ReactionBase(func) {
-    let _this = this
-
-    _this.triggeringProperties = new Set()
-    _this.func = func
-    
-    _this.addTriggeringProperty = function (property) {
-        _this.triggeringProperties.add(property)
-        property.dependentReactions.add(_this)
-    }
-
-    _this.unsubscribeFromTriggeringProperties = function () {
-        if (_this.triggeringProperties.size == 0) return
-
-        for (let triggeringProperty of _this.triggeringProperties) {
-            triggeringProperty.dependentReactions.delete(_this)
-        }
-        _this.triggeringProperties.clear()
-    }
-
-    _this.execute = function (object) {
-        let oldReaction = Reaction.current
-        Reaction.current = _this
-        _this.unsubscribeFromTriggeringProperties()
-
-        try {
-            let result = _this.func(object)
-            return result
-        }
-        finally {
-            Reaction.current = oldReaction
-        }
-    }
-
-
-    //_this.makeDirty = abstract function
-    _this.dirtImmune = false
-}
-
-
-function Reaction(func) {
-    let _this = this
-
-    ReactionBase.call(_this, func)
-    
-    _this.makeDirty = function () {
-        if (_this.dirtImmune)
-            return;
-        Reaction.deferred.add(_this)
-    }
-
-    if (Reaction.deferred) {
-        Reaction.deferred.add(_this)
-    } else {
-        let d = Reaction.beginDeferred()
-
-        try {
-            _this.execute()
-        } catch (e) {
-            console.warn(e)
-        }
-        
-        d.end()
-    }
-}
-
-Reaction.prototype = Object.create(ReactionBase.prototype)
-Reaction.prototype.constructor = Reaction
-
-Reaction.beginDeferred = function () {
-    if (!Reaction.deferred) {
-        Reaction.deferred = new Set()
-        return {
-            end: function () {
-
-                let maxIterations = 64;
-                 
-                while (Reaction.deferred.size > 0 & maxIterations > 0) {
-                    //console.log("Reaction.deferred.end", Reaction.deferred.size)
-                    let d = Array.from(Reaction.deferred)
-                    for (let reaction of d) {
-                        Reaction.deferred.delete(reaction)
-                        try {
-                            reaction.execute()
-                        } catch (e) {
-                            console.warn(e)
-                        }
-                        
-                    }
-                    maxIterations--
-                    //d.forEach(x => x.execute())
-                    //Reaction.deferred.clear()
-                }
-
-                if (maxIterations == 0) {
-                    console.error("Recursive property binding", Reaction.deferred)
-                }
-
-                //let l = Reaction.deferred;
-                Reaction.deferred = undefined
-                //l.forEach(x => x.execute())
-
-                
-
-            }
-        };
-    }
-    return {
-        end: function () { }
-    };
-}
-
-
-Reaction.beginNonReactive = function () {
-    if (!Reaction.current) {
-        let oldCurrent = Reaction.current
-        Reaction.current = undefined
-        return {
-            end: function () {
-                Reaction.current = oldCurrent
-            }
-        };
-    }
-    return {
-        end: function () { }
-    };
-}
-
-
-
-function Binding(func, onBecameDirty) {
-    //console.log("function Binding(func, onChange)", onChange)
-    let _this = this
-
-    ReactionBase.call(_this, func)
-
-    _this.dirty = true
-    //_this.onBecameDirty = onBecameDirty
-
-    
-    _this.makeDirty = function () {
-        if (_this.dirty)
-            return
-
-        _this.dirty = true        
-        onBecameDirty()
-    }
-}
-Binding.prototype = Object.create(ReactionBase.prototype);
-Binding.prototype.constructor = Binding;
-
-
-
-function Property(value) {
-
-    let _this = this
-    _this.name = ""
-    _this.parent = null
-
-    _this.dependentReactions = new Set()
-    _this.binding = undefined
-
-    _this.makeDirty = function () {
-        _this.binding.makeDirty()
-    }
-    
-    _this.onBindingBecameDirty = function () {
-        _this.makeDependentReactionsDirty()
-    }
-
-    _this.makeDependentReactionsDirty = function () {
-        /********************************************
-         a deferred context is reqired here in case
-         makeDirty() is called from a callback
-         
-         window.setTimeout(() => {
-            element.Reactive.SomeProperty.makeDirty();
-        },50)
-
-         *******************************************/
-        var d = Reaction.beginDeferred() 
-        _this.dependentReactions.forEach(x => x.makeDirty())
-        d.end()
-    }
-
-    /*_this.dependsOn = function (property) {
-        if (!_this.binding)
-            return false
-        _this.getValue()
-        for (let i of _this.binding.dependencies) {
-            if (i == property)
-                return true
-        }
-        for (let i of _this.binding.dependencies) {
-            if (i.dependsOn(property))
-                return true
-        }
-        return false
-    }
-
-    _this.getRecursiveDependencies = function () {
-        let result = new Set();
-        if (!_this.binding)
-            return result
-        _this.getValue()
-        
-        _this._collectRecursiveDependencies(result)
-        return result
-    }
-
-    _this._collectRecursiveDependencies = function (set) {
-        for (let i of _this.binding.dependencies) {
-            set.add(i)
-            i._collectRecursiveDependencies(set)
-        }
-    }*/
-    _this.executionInProgress = false
-    
-    _this.getValue = function() {
-        //console.log("getValue")
-        
-        //console.log("getValue", _this.name, _this.binding?.dirty)
-
-        if (Reaction.current) {
-            Reaction.current.addTriggeringProperty(_this)
-        }
-
-        if (_this.binding) { //wechat (this.binding?.dirty) not supported
-            if (_this.binding.dirty) {
-                if (_this.executionInProgress) {
-
-
-                    if (_this.reactionsWhoReceivedOldValue == undefined) {
-                        _this.reactionsWhoReceivedOldValue = new Set()
-                    }
-                    _this.reactionsWhoReceivedOldValue.add(Reaction.current)                    
-
-                    //console.log("getValue", _this.name, "executionInProgress")
-
-                    return _this.value
-                }
-                try {
-                    var oldValue = _this.value
-                    try {
-                        _this.executionInProgress = true
-                        _this.value = _this.binding.execute(_this.object)
-                        
-                    } finally {
-                        _this.executionInProgress = false
-
-                        _this.binding.dirty = false
-                        //console.log("execute finished ", _this.object, _this.name, oldValue, "->", _this.value)
-
-
-                        if (_this.reactionsWhoReceivedOldValue) {
-
-                            if (_this.value !== oldValue) {
-
-                                //var reactionsToPrint = Array.from(_this.reactionsWhoReceivedOldValue).map(x => x.func.name)
-                                //console.log("ReactionsWhoReceivedOldValue", reactionsToPrint)
-
-                                let d = Reaction.beginDeferred()
-                                _this.reactionsWhoReceivedOldValue.forEach(x => x.makeDirty())
-                                d.end()
-                            }
-
-                            _this.reactionsWhoReceivedOldValue = undefined                            
-
-                        }
-                        
-                            
-                    }
-
-                } catch (e) {
-
-
-                    
-
-                    console.error(e)
-                }                
-            }
-        }
-
-
-
-        return _this.value
-    }
-
-
-    /*_this.setValueKeepBinding = function (value) {
-
-        if (_this.value === value)
-            return
-        _this.value = value
-        var d = Reaction.beginDeferred()
-        _this.makeDependentReactionsDirty()
-        d.end()
-        if (_this.binding) {
-            _this.binding.dirty = false
-        }
-    }*/
-
-    _this.setValue = function(value) {
-        //console.log("setValue " + value + " " + _this.onChanged.size)
-        if (typeof value === 'function') {
-
-            if (value.isBindingConstructor) {
-                value = value(_this)
-            }
-
-            if (_this.binding) {
-                if (_this.binding.func === value) {
-                    return
-                }
-                _this.binding.unsubscribeFromTriggeringProperties()
-                //console.log("change binding from", _this.binding.func, "to", value)
-            }
-            
-            _this.binding = new Binding(value, _this.onBindingBecameDirty)
-
-
-        } else {
-            //console.log("value assigned", _this.value, "->", value, "will notify ", _this.onChanged.size)
-            if (_this.binding) {
-                _this.binding.unsubscribeFromTriggeringProperties()
-                _this.binding = undefined
-            }
-
-            if (_this.value === value)
-                return
-
-            _this.value = value
-        }
-
-        var d = Reaction.beginDeferred()
-        _this.makeDependentReactionsDirty()
-        d.end()
-    }
-
-
-
-    _this.attach = function(object, name) {
-        //let property = this
-        _this.name = name
-        _this.object = object
-        let accessorDescriptor = {
-            get: function () {
-                return _this.getValue()
-            },
-            set: function (value) {
-                _this.setValue(value)
-
-            }
-        }
-        Object.defineProperty(object, name, accessorDescriptor);
-        return _this
-    }    
-    _this.setValue(value)
-}
-
-
-
-Property.exists = function (target, name) {
-    var propertyDescriptor = !!Object.getOwnPropertyDescriptor(target, name)
-    var propertyFieldExists = target.hasOwnProperty("__" + name)
-    return propertyDescriptor && propertyFieldExists
-}
-
-Property.nameAvailable = function (target, name) {
-    if (Object.getOwnPropertyDescriptor(target, name))
-        return false
-    if (target.hasOwnProperty(name))
-        return false
-    return true
-}
-
-Object.defineProperty(Object.prototype, "Reactive", {
-    get: function () {
-        return new Proxy(
-            this,
-            {
-                get(target, name, receiver) {
-                    //console.log(`get target:${JSON.stringify(target)} name: ${name}`)
-                    return target["__" + name]
-                    //return Reflect.get(...arguments);
-                },
-                set: function (target, name, value, receiver) {
-                    //console.log("set",target,name,value)
-                    
-                    if (target.hasOwnProperty("__" + name)) {
-                        //console.log("asigning existing property", name)
-                        const propertyField = target["__" + name]
-                        propertyField.setValue(value)
-                    } else {
-                        //console.log("creating new property", name)
-                        target["__" + name] = new Property(value).attach(target,name)
-                    }
-                }
-            }
-            )
-    },
-    set: function (obj) {
-        let proxy = this.Reactive
-        //console.log(proxy)
-
-        let d = Reaction.beginDeferred()
-        //отложенное выполнение реакций не нужно при создании свойств
-        //тут оно используется т.к. следующий код можнт не только создать свойство
-        //но и присвоить значение существующему свойству
-        if (obj instanceof Object) {
-            for (const [key, value] of Object.entries(obj)) {
-                proxy[key] = value                
-            }
-        }
-        d.end()
-    }
-});
-
-
-function OnChanged(getter, action) {
-    let previous = undefined
-    return new Reaction(() => {
-        let current = getter()
-        if (current != previous) {
-            let n = Reaction.beginNonReactive()
-            action(previous, current)
-            n.end()
-            previous = current
-        }
-    })
-}
-
-
-
-
-function OnTruthify(predicate, action) {
-    
-    let previous = undefined
-    return new Reaction(() => {        
-        let current = predicate()
-        if (current === true && (!previous === true)) {
-            let n = Reaction.beginNonReactive()
-            action()            
-            n.end()
-        }
-        previous = current
-    })
-}
-
-function PropertyTest() {
-
-    console.group("PropertyTest")
-
-    let root = {
-        Field: 7
-
-    }
-
-    console.assert( Property.nameAvailable(root, "A") == true)
-    console.assert( Property.nameAvailable(root, "Field") == false)
-
-
-    console.assert( Property.exists(root, "A") == false)
-
-    root.Reactive.A = 0
-
-    console.assert( Property.exists(root, "A") == true)
-    console.assert( Property.nameAvailable(root, "A") == false)
-
-    console.assert(root.A == 0)
-    root.Reactive.A = 8
-    console.assert(root.A == 8)
-
-
-    root.Reactive.B = () => root.A * 2
-    console.assert( root.B == 16)
-
-    root.A = 10
-    console.assert( root.B == 20)
-
-    
-
-    root.Reactive = {
-        C: 7,
-        D: () => root.C,
-        //E: () => root.B*4,
-    }
-
-    console.assert( Property.exists(root, "C") == true)
-    console.assert( Property.exists(root, "D") == true)
-
-    console.assert(root.D == root.C)
-    //console.assert(root.E == root.B*4)
-
-    root.Reactive.B = () => root.A * 3
-    //console.assert(root.B == 30)
-    //console.assert(root.E == root.A * 3 * 4)
-
-    /*root.Reactive.B = 10
-    console.assert(root.E == 40)
-
-    root.Reactive.B = () => root.A * 3
-    console.assert(root.E == 10 * 3 * 4)*/
-
-
-    new Reaction(() => {
-        root.Field = root.C
-    })
-    console.assert(root.Field == root.C)
-
-    let bReactionResult
-    new Reaction(() => {
-        bReactionResult = root.B
-    })
-    console.assert(bReactionResult == root.B)
-    console.group("root.A = 20")
-    root.A = 20
-    console.groupEnd()
-    console.assert(bReactionResult == root.B)
-
-
-    root.C = 9
-    console.assert(root.Field == root.C)
-    console.assert(root.D == root.C)
-
-
-    root.Reactive.D = ()=>root.C+1
-
-
-
-    console.groupEnd()
-}
-
-Object.defineProperty(Object.prototype, "Events", {
-    get: function () {
-
-        const prefix = "___"
-
-        return new Proxy(
-            this,
-            {
-                get(target, name, receiver) {
-                    return target[prefix + name]
-                },
-                set: function (target, name, value, receiver) {
-                    name = name.toLowerCase()
-
-                    function add(event) {
-                        target[prefix + name] = event
-                        target.addEventListener(name, event.handler, event)
-                    }
-
-                    if (target.hasOwnProperty(prefix + name)) {
-                        let event = target[prefix + name]
-                        if (event !== undefined)
-                            target.removeEventListener(name, event.handler)
-                    }
-
-                    //console.log("set", target, name, typeof (value), value)
-
-                    if (value !== undefined) {
-
-                        if (typeof (value) === "function") {
-                            add({
-                                handler: value,
-                                capture: false,
-                            })
-                        } else if (typeof (value) === "object") {
-                            if (typeof (value.handler) !== "function") {
-                                console.error("If the value is an object, it must have a 'handler' field of type 'function'")
-                            }
-                            value.capture = false
-                            add(value)
-                        } else {
-                            console.warn(`Type '${typeof(value)}' is invalid for event. To remove event handler assign 'undefined'`)
-                        }
-                    }
-                }
-            }
-        )
-    }/*,
-    set: function (obj) {
-    }*/
-});
-
-function GetParentElementByPredicate(firstParentToCompare, predicate) {
-    var p = firstParentToCompare
-    while (p != undefined) {
-        if (predicate(p)) {
-            
-            return p
-        } else {
-            /*if (p.tagName == "SCROLLABLE") {
-                console.error("SCROLLABLE", p.parentElement)
-            }*/
-            p = p.parentElement
-        }
-    }
-    return undefined
-}
-
-
-
-function Hierarchical(element) {
-    element.isHierarchical = true
-
-    
-
-    element.Reactive = {
-
-
-        IsRoot: () => element.Parent == undefined,
-
-        NestingDepth: () => (element.IsRoot || element.overlaySign==1) ? 0 : (element.Parent.NestingDepth + 1),
-
-        Root: () => element.Parent.Root,
-        /*Parent: undefined() => {
-
-            let v = GetParentElementByPredicate(element.parentElement, x => x.isHierarchical)
-
-            return v
-        },*/
-        ParentBlock: () => GetParentElementByPredicate(element.Parent, x => x.isBlock),
-        FirstChild: undefined,
-        LastChild: undefined,
-        NextSibling: undefined,
-    }
-
-    if (element.Parent) {
-        if (element.dataset.property) {
-            element.Parent[element.dataset.property] = element
-
-        }
-        if (element.dataset.child!=undefined) {
-            
-            if (!element.Parent.FirstChild) {
-                element.Parent.FirstChild = element
-                element.Parent.LastChild = element
-            } else {
-                element.Parent.LastChild.NextSibling = element
-                element.Parent.LastChild = element
-            }
-        }
-        
-    }
-
-    
-
-
-
-    element.Children = {}
-    element.Children[Symbol.iterator] = function* () {
-        var i = element.FirstChild
-        while (i != undefined) {
-            yield i
-            i = i.NextSibling
-        }
-    };
-
-    element.Sibling = function (id) {
-        return element.Parent.Child(id)        
-    }
-
-    element.Child = function (id) {
-        let i = element.FirstChild
-        
-        if (typeof id === "number") { 
-            for (let n = 0; n < id; n++) {                
-                i = i.NextSibling
-            }
-
-        } else {
-            while (i) {
-                if (i.id == id) {
-                    return i
-                }
-                i = i.NextSibling
-            }
-        }
-        //console.warn(`element ${element.tagName} do not have child "${id}"`)
-        return i
-    }
-
-
-    
- 
-
-}
-
-function Color() {
-    let args = [...arguments]
-    let _this = this
-
-    _this.r = 0
-    _this.g = 0
-    _this.b = 0
-    _this.a = undefined
-
-    if (args.length == 0) {
-        return
-    }
-
-    if (args.length == 1) {
-        let input = args[0]
-        if (typeof input == 'number') {
-            _this.r = (input & 0xFF) / 255
-            _this.g = ((input & 0xFF00) >>> 8) / 255
-            _this.b = ((input & 0xFF0000) >>> 16) / 255
-            _this.a = ((input & 0xFF000000) >>> 24) / 255
-            return;
-        }
-
-        if (typeof input == 'string') {
-            
-            if (input.substr(0, 1) == "#") {
-                var collen = (input.length - 1) / 3;
-                var fact = [17, 1, 0.062272][collen - 1] / 255;
-                _this.r = parseInt(input.substr(1, collen), 16) * fact
-                _this.g = parseInt(input.substr(1 + collen, collen), 16) * fact
-                _this.b = parseInt(input.substr(1 + 2 * collen, collen), 16) * fact 
-                return
-            }
-
-            //} return input.split("(")[1].split(")")[0].split(",").map(x => +x)
-
-        }
-
-        console.warn("Color: Invalid arguments", input)
-    }
-
-    
-
-    if ((args.length >= 3) & (args.length <= 4)) {
-        if (args.slice(0, 3).some(x => (typeof x) != 'number')) {
-            console.warn("Color: Invalid arguments types", args)
-            return;
-        }
-
-        _this.r = args[0]
-        _this.g = args[1]
-        _this.b = args[2]
-
-        if (args.length == 4) {
-            if ((typeof args[3]) != 'number') {
-                console.warn("Color: Invalid arguments types", args)
-                return;
-            }
-            _this.a = args[3]
-        }
-        return
-    }
-    
-    console.warn("Color: Invalid arguments", args)
-
-}
-
-Color.prototype.toString = function () {
-    let a = this.a
-    if (a == undefined)
-        a = 1
-    return `rgba(${Math.round(255 * this.r)},${Math.round(255 * this.g)},${Math.round(255 * this.b)},${a})`
-}
-
-
-
-Color.Lerp = function (a, b, t) {
-    return a.Lerp(b,t)
-}
-
-Color.prototype.Lerp = function (targetColor, amount) {
-    var bk = (1 - amount);
-    var a = First(this.a * bk + targetColor.a * amount, this.a, targetColor.a);
-    var r = this.r * bk + targetColor.r * amount;
-    var g = this.g * bk + targetColor.g * amount;
-    var b = this.b * bk + targetColor.b * amount;
-    return new Color(r, g, b, a);
-}
-
-Color.prototype.contrastColor = function (contrast = 1) {
-    var grayscale = (0.2125 * this.r) + (0.7154 * this.g) + (0.0721 * this.b);
-    var blackOrWhite = (grayscale > 0.5) ? new Color(0, 0, 0, 1) : new Color(1, 1, 1, 1);
-    return this.Lerp(blackOrWhite, contrast);
-}
-
-function BaseModifier(element) {
-    Hierarchical(element)
-
-    if (element.parentElement.tagName == "A") {
-        if (window.location.protocol == "file:") {
-            let a = element.parentElement
-            let href = a.getAttribute("href")
-            let AbsoluteUrlRegExp = new RegExp('^(?:[a-z+]+:)?//', 'i')
-            if (!AbsoluteUrlRegExp.test(href)) {
-                a.setAttribute("href", href + ".html")
-            }
-        }        
-    }
-    
-
-
-    //var extension = (window.location.protocol == "file:") ? ".html" : ""
-    
-
-    //window.location.replace(matchLanguage([{{ languages }}]) + extension)
-
-
-
-    element.isModifier = true
-
-    element.Reactive = {
-        Hover: false,
-        Selectable: undefined,
-
-        BackgroundColor: undefined,
-        HierarchyBackgroundColor: () => element.BackgroundColor || element.Parent.HierarchyBackgroundColor,
-
-        ForegroundColor: () => { 
-            if (element.BackgroundColor != undefined)
-                return element.BackgroundColor.contrastColor()
-            else
-                return undefined
-        },
-        HierarchyForegroundColor: () => element.ForegroundColor || element.Parent.HierarchyForegroundColor,
-
-        TextDecorationColor: () => {
-            if (element.ForegroundColor != undefined)
-                return element.ForegroundColor
-            else
-                return undefined
-        },
-
-        FontSize: undefined,
-        HierarchyFontSize: () => element.FontSize || element.Parent.HierarchyFontSize,
-
-        Radius: undefined,
-        RadiusTopLeft: () => element.Radius,
-        RadiusTopRight: () => element.Radius,
-        RadiusBottomLeft: () => element.Radius,
-        RadiusBottomRight: () => element.Radius,
-
-        Visibility: 1
-    }
-
-    new Reaction(() => {
-        let visibility = element.Visibility
-        if (visibility == 0) {
-            element.style.visibility = "hidden"
-            element.style.opacity = ""
-        } else if (visibility == 1) {
-            element.style.visibility = ""
-            element.style.opacity = ""
-        } else {
-            element.style.opacity = visibility
-            element.style.visibility = ""
-        }        
-    })
-
-
-    new Reaction(() => {
-        element.style.borderTopLeftRadius       = ToCssSize(element.RadiusTopLeft)
-        element.style.borderTopRightRadius      = ToCssSize(element.RadiusTopRight)
-        element.style.borderBottomLeftRadius    = ToCssSize(element.RadiusBottomLeft)
-        element.style.borderBottomRightRadius   = ToCssSize(element.RadiusBottomRight)
-    })
-
-
-
-    new Reaction(() => {
-        let selectable = element.Selectable
-        if (selectable!=undefined)
-            element.style.userSelect = element.Selectable ? "text" : "none"
-        else
-            element.style.userSelect = ""
-    })
-    
-
-    new Reaction(() => {
-        element.style.backgroundColor = ToCssValue(element.BackgroundColor)
-    })
-
-    new Reaction(() => {
-        element.style.color = ToCssValue(element.ForegroundColor)
-    })
-
-    new Reaction(() => {
-        element.style.textDecorationColor = ToCssValue(element.TextDecorationColor)
-    })
-}
-
-
-/*function CalcLeft(container, child) {
-    if (container.PaddingLeft != undefined) {
-        return Math.max(container.PaddingLeft, First(child.MarginLeft,0))
-    }
-    if (container.MarginLeft == undefined) {
-        return First(child.MarginLeft,0)
-    }
-    return Math.max(child.MarginLeft - container.MarginLeft, 0)
-}*/
-
-function CalcOffset(container, child, sideName) {
-    let paddingName = "Padding" + sideName
-    let marginName = "Margin" + sideName
-    if (container[paddingName] != undefined) {
-        return Math.max(container[paddingName], First(child[marginName], 0))
-    }
-    if (container[marginName] == undefined) {
-        return First(child[marginName], 0)
-    }
-    if (child[marginName] == undefined) {
-        return 0
-    }
-    return Math.max(child[marginName] - container[marginName], 0)
-}
-
-function GetClipRect(clippingElement, contentX, contentY, contentWidth, contentHeight ) {
-    let left = -contentX
-    let top = -contentY
-    let right = -clippingElement.Width + contentWidth + contentX
-    let bottom = -clippingElement.Height + contentHeight + contentY
-    let offsets = `${top}px ${right}px ${bottom}px ${left}px`
-    let round = ""
-    if (
-        clippingElement.RadiusTopLeft != undefined
-        || clippingElement.RadiusTopRight != undefined
-        || clippingElement.RadiusBottomLeft != undefined
-        || clippingElement.RadiusBottomRight != undefined
-    ) {
-        round = ` round ${clippingElement.RadiusTopLeft || 0}px ${clippingElement.RadiusTopRight || 0}px ${clippingElement.RadiusBottomRight || 0}px ${clippingElement.RadiusBottomLeft || 0}px`
-    }
-    return `inset(${offsets}${round})`
-}
-
-
-function Block(element) {
-    
-
-    BaseModifier(element)
-
-    element.isBlock = true
-
-
-
-    element.Reactive = {
-        
-        Depth: 0,
-
-        PaddingLeft: undefined,
-        PaddingTop: undefined,
-        PaddingRight: undefined,
-        PaddingBottom: undefined,
-
-        MarginLeft: undefined,
-        MarginTop: undefined,
-        MarginRight: undefined,
-        MarginBottom: undefined,
-
-        LayoutX: undefined,
-        LayoutY: undefined,
-        LayoutWidth: undefined,
-        LayoutHeight: undefined,
-
-        
-
-        InternalWidth: undefined,
-        InternalHeight: undefined,
-
-
-        X: () => First(element.LayoutX,0),
-        Y: () => First(element.LayoutY,0),
-
-        AbsoluteX: () => element.IsRoot ? 0 : Sum(element.Parent.AbsoluteX, element.Parent.ScrollXActual, element.X),
-        AbsoluteY: () => element.IsRoot ? 0 : Sum(element.Parent.AbsoluteY, -element.Parent.ScrollYActual, element.Y),
-
-        Width: e => First(e.LayoutWidth, e.InternalWidth),
-        Height: e => First(e.LayoutHeight, e.InternalHeight),
-
-        ClipByParent: false
-        
-    }
-
-    DepthToStyle(element)
-
-
-    XToStyle(element);
-    YToStyle(element);
-    WidthToStyle(element)
-    HeightToStyle(element)
-
-    //element.style.clipPath = "path('M 0 200 L 0,75 A 5,5 0,0,1 150,75 L 200 200 z')"
-
-    new Reaction(() => {
-        if (element.Parent == undefined)
-            return
-
-        if (element.ClipByParent) {
-
-            element.style.clipPath = GetClipRect(element.Parent, element.X, element.Y, element.Width, element.Height)
-
-
-            /*let left = -element.X
-            let top = -element.Y
-            let right = -element.Parent.Width + element.Width - element.X
-            let bottom = -element.Parent.Height + element.Height - element.Y
-            let offsets = `${top}px ${right}px ${bottom}px ${left}px`
-            let round = ""
-            if (
-                element.Parent.RadiusTopLeft != undefined
-                || element.Parent.RadiusTopRight != undefined
-                || element.Parent.RadiusBottomLeft != undefined
-                || element.Parent.RadiusBottomRight != undefined
-            ) {
-                round = ` round ${element.Parent.RadiusTopLeft || 0}px ${element.Parent.RadiusTopRight || 0}px ${element.Parent.RadiusBottomRight || 0}px ${element.Parent.RadiusBottomLeft || 0}px`
-            }
-            element.style.clipPath = `inset(${offsets}${round})`*/
-        } else {
-            element.style.clipPath = ""
-        }
-
-    })
-
-
-    
-
-
-    new Reaction(() => {
-        element.style.fontSize = ToCssSize(element.FontSize)
-    })
-
-    element.Events.MouseEnter = () => element.Hover = true
-    element.Events.MouseLeave = () => element.Hover = false
-
-
-    
-
-
-}
-
-
-function Page(element) {
-    element.classList.add("js")
-    element.isRoot = true
-    let loadingDeffered = Reaction.beginDeferred()
-
-    Block(element)
-
-    var html = document.body.parentNode
-    function getWindowWidth() {
-        return html.clientWidth
-        //return document.documentElement.clientWidth //window.innerWidth
-    }
-    function getWindowHeight() {       
-        return html.clientHeight
-        //return window.innerHeight // document.documentElement.clientHeight
-    }
-
-
-    let animationFrame = 0
-    window.Reactive = {
-        Root: element,
-
-        AnimationFrame: () => {
-            animationFrame++
-            window.requestAnimationFrame(() => {
-                window.Reactive.AnimationFrame.makeDirty()
-            });
-            return animationFrame
-        },
-
-        UserInteracted: false,
-        DevicePixelRatio: window.devicePixelRatio,
-        Touch: false,
-    }
-
-    let touchMedia = window.matchMedia("(pointer: coarse)")
-    window.Touch = touchMedia.matches
-    touchMedia.onchange = (e) => {
-        window.Touch = e.matches
-    }
-
-    function createDevicePixelRatioCallback(func) {
-        let matchMedia = window.matchMedia(`screen and (resolution: ${window.devicePixelRatio}dppx)`)
-        matchMedia.addEventListener(
-            "change",
-            () => {
-                func()
-                createDevicePixelRatioCallback(func)
-            },
-            { once: true }
-        );
-    }
-    createDevicePixelRatioCallback(() => window.DevicePixelRatio = window.devicePixelRatio)
-
-
-
-    element.Reactive = {
-        Root: element,        
-
-        LayoutWidth: undefined,
-        LayoutHeight: undefined,
-
-        FontSize: 16,
-        HierarchyFontSize: () => element.FontSize,
-
-        BackgroundColor: new Color("#fff"),
-
-        HierarchyBackgroundColor: () => element.BackgroundColor,
-        HierarchyForegroundColor: () => element.ForegroundColor,
-
-    }
-
-    new Reaction(() => {
-        element.LayoutWidth = getWindowWidth()
-        element.LayoutHeight = getWindowHeight()
-    })
-
-    /*window.ontouchend = () => {
-        console.log("ontouchend")
-        window.UserInteracted = true
-    }*/
-    window.onmousedown = () => {
-        window.UserInteracted = true
-    }
-
-    /*function PrintWindowSize() {
-        console.log("onresize", window.innerWidth, window.innerHeight, document.documentElement.clientWidth, document.documentElement.clientHeight, document.body.parentNode.clientHeight)
-    }*/
-    //PrintWindowSize()
-
-    window.onresize = function (event) {
-        //let startTime = performance.now()
-        let d = Reaction.beginDeferred()
-        element.LayoutWidth = getWindowWidth()
-        element.LayoutHeight = getWindowHeight()
-        //PrintWindowSize()
-        d.end()
-        //console.log("resize", performance.now() - startTime)
-    }
-    
-    let loadEventsToWait = 2
-    function onLoadEvent() {
-        loadEventsToWait--
-        if (loadEventsToWait == 0) {
-            //document.body.style.display = "block"
-            //document.body.style.visibility = "hidden"
-            console.log("-------------Reactions------------", performance.now());
-            loadingDeffered.end()
-            console.log("-------------Reactions-done-------", performance.now());
-            
-
-            
-            document.body.style.visibility = "visible"
-            //document.body.style.opacity = 1
-
-            if (location.hash !== "") {
-                location.href = location.hash
-            }
-
-
-
-            /*let d = Reaction.beginDeferred()
-            element.WindowWidth = getWindowWidth()
-            element.WindowHeight = getWindowHeight()
-            d.end()*/
-        }
-    }
-
-    document.fonts.ready
-        .then(() => {
-            console.log("-------------Fonts ready--", performance.now());
-            onLoadEvent()            
-        })
-
-    window.addEventListener("DOMContentLoaded", function (event) {
-        console.log("------DOMContentLoaded--", performance.now());
-        onLoadEvent()
-    })
-
-
-
-    
-
-}
-
-
-
-
-    /*var template = document.createElement('div');
-    template.style.display = "contents"
-    element.appendChild(template);
-    new Reaction(() => {
-        template.innerHTML = element.Html;
-
-    })*/
-
-    //element.insertAdjacentHTML('beforeend', `<svg width="800" viewBox="0 0 800 600" x="2 ${200}"><circle cx="500" cy="500" cx="500"r="20"></circle></svg>`);
-    //console.log(`265 && element.ContentWidth`)
-
-
-
-    /*element.Reactive =
-    {
-        A: () => {
-            console.log("Get A")
-            return Max(element.B, element.E)
-        },
-
-        //C: () => { Max(element.E, element.A) },
-
-        E: () => {
-            console.log("Get E")
-            return element.A
-        },
-
-        B: 6
-    }
-
-    //let d = Reaction.beginDeferred()
-
-    new Reaction(() => {
-        console.group("Reaction A:")
-        console.log("element.Reactive.E.binding.dirty:", element.Reactive.E.binding.dirty)
-        console.log("element.Reactive.A.binding.dirty:", element.Reactive.A.binding.dirty)
-
-        console.log("Reaction A:", element.A)
-
-        console.groupEnd()
-    })
-
-    //d.end()
-
-*/
-    
-
-
-    /*new Reaction(() => {
-        console.log("Reaction E:", element.E)
-    })
-
-    console.log("element.Reactive.E.binding.dirty:", element.Reactive.E.binding.dirty)
-    console.log("element.Reactive.A.binding.dirty:", element.Reactive.A.binding.dirty)*/
-
-    
-
-
-
-
-    //PropertyTest()
-
-    
-
-    
-
-    /*let previous = this.Content
-    let onChanged = function (previous, current) {
-        if (current) {
-            this.Content.InnerWidth =
-                () => Math.min(this.Content.Width, parameters.ContentWidth)
-        }
-    }
-    new Reaction(() => {
-        let current = this.Content
-        if (current != previous) {
-            onChanged(previous, current)
-            previous = current
-        }
-    })*/
-
-
-    /*new Reaction(() => {
-
-        if (this.Content)
-            console.log("Content.PaddingLeft changed", this.Content.PaddingLeft)
-    })*/
-
-
-
- 
-
-    //console.log(parameters.ContentWidth)
-
-
-    /*new Property().attach(element, "Content")
-
-    new Property(window.innerWidth).attach(window, "InnerWidth")
-    new Property(window.innerHeight).attach(window, "InnerHeight")
-
-
-    const LeftBarSize = 200
-    const RightBarSize = 50
-
-    new Reaction(() => {
-        if (element.Content) {
-
-            element.Content.style.left = LeftBarSize+"px"
-
-            element.Content.MaxInnerWidth = parameters.ContentWidth
-            element.Content.Width = window.InnerWidth - LeftBarSize - RightBarSize
-        }
-    })
-
-
-    
-
-    */
-
-
-    /*element.css({
-        margin: "0",
-    })
-    let leftBarWidth = 0;
-    let rightBarWidth = 0;
-
-    //contentWidth = 800;
-
-    element.onAnchorsChanged = []
-    element.anchors = {}
-    var leftBar = element.querySelector("#leftBar");
-    var rightBar = document.getElementById("#rightBar");
-
-    leftBarWidth = leftBar == null ? 0 : leftBar.width;
-    rightBarWidth = rightBar == null ? 0 : rightBar.width;
-
-    function updateHeaderWidth() {
-        let left = element.anchors.textLeft;
-        let right = element.anchors.textRight;
-        header.style.marginLeft = left + "px";
-        header.style.width = right - left + "px";
-    }
-
-
-
-    function updateAnchors() {
-        
-
-        var leftBar = element.querySelector("#leftBar");
-        var rightBar = element.querySelector("#rightBar");
-        leftBarWidth = leftBar == null ? 0 : leftBar.offsetWidth;
-        rightBarWidth = rightBar == null ? 0 : rightBar.offsetWidth;
-        const textMargin = 12;
-        let width = window.innerWidth;
-        let wideAnchorsCollapsed = width < (leftBarWidth + rightBarWidth + contentWidth);
-        element.anchors.wideLeft = wideAnchorsCollapsed ? 0 : leftBarWidth;
-        element.anchors.wideRight = wideAnchorsCollapsed ? width : width - rightBarWidth;
-        element.anchors.wideAnchorsCollapsed = wideAnchorsCollapsed;
-        let fillAnchorsCollapsed = width < contentWidth;
-        let center = 0.5 * (element.anchors.wideLeft + element.anchors.wideRight);
-        element.anchors.fillLeft = fillAnchorsCollapsed ? 0 : (center - 0.5 * contentWidth);
-        element.anchors.fillRight = fillAnchorsCollapsed ? width : (center + 0.5 * contentWidth);
-
-        element.anchors.textLeft = Math.max(element.anchors.fillLeft, element.anchors.wideLeft + textMargin);
-        element.anchors.textRight = Math.min(element.anchors.fillRight, element.anchors.wideRight - textMargin);
-
-        element.onAnchorsChanged.map(x => x());
-        if (wideAnchorsCollapsed) {
-            document.getElementById("rightBar").style.visibility = "hidden";
-            document.getElementById("leftBar").style.visibility = "hidden";
-        } else {
-            document.getElementById("rightBar").style.visibility = "";
-            document.getElementById("leftBar").style.visibility = "";
-        }
-
-    }
-
-    DetectSwipe(element, swiper);
-
-    function swiper(direction, swipe, touchEnd, event) {
-        let getTranslate = (offsetWidth) => {
-            var value = direction == 'left' || direction == 'right' ? swipe.swipeX : swipe.swipeY;
-            let percent = toPercents(Math.abs(value), offsetWidth);
-            let translate = percent > 0 ? percent : 0;
-            return translate;
-        }
-
-        let showChildren = (element) => Array.from(element.children).forEach(x => {
-            x.css({ visibility: "visible" });
-        });
-
-        if (direction == 'left') {
-            let allSwiped = event.path.map(x => x.scrollLeft == null ? true : x.scrollLeft === x.scrollWidth - x.clientWidth).every(x => x == true);
-            if (allSwiped) {
-                let startY = swipe.clientStartY;
-                let touchedElementSpace = menusHitBoxes.find(x => x.top <= startY && x.bottom >= startY);
-                if (touchedElementSpace == null) { return; }
-                let selectedMenu = touchedElementSpace.element
-                if (selectedMenu.position == 'minimizedRight') {
-                    showChildren(selectedMenu);
-                    let translate = 100 - getTranslate(selectedMenu.offsetWidth);
-                    selectedMenu.css({ transform: `translateX(clamp(0%, ${translate}%, 70%))` });
-                }
-            }
-        } else {
-            //menusHitBoxes.forEach(x => x.element.css({ transform: 'translateX(70%)' }));
-        }
-    }
-
-    menusHitBoxes = [];
-
-
-    window.addEventListener("resize", updateAnchors);
-    document.addEventListener("DOMContentLoaded", function() {
-
-        element.style.display = "";
-        rightBarWidth = document.getElementById("rightBar").scrollWidth;
-        leftBarWidth = document.getElementById("leftBar").scrollWidth;
-        header = document.getElementById("Header");
-        if (header != null) {
-            element.onAnchorsChanged.push(updateHeaderWidth);
-        }
-        updateAnchors()
-        var rightBar = document.getElementById('rightBar');
-        var children = Array.from(rightBar.children)
-        children.forEach(x => {
-            var rect = x.getBoundingClientRect();
-            let element = {
-                element: x,
-                top: rect.top,
-                bottom: rect.bottom
-            }
-            menusHitBoxes.push(element);
-        });
-    });*/
-
-
-var Storage = {}
-
-Storage.Elements = {}
-
-Storage.Restore = function (name, getter) {
-
-    var valueString = localStorage.getItem(name)
-
-    if (Storage.Elements[name] == undefined) {
-        Storage.Elements[name] = new Reaction(() => {
-            var newValue = getter()
-            localStorage.setItem(name, typeof (newValue) + " " + newValue)
-        })
-    }
-
-    if (valueString != null) {
-        var seperator = valueString.indexOf(' ')
-        var type = valueString.substring(0, seperator)
-        var value = valueString.substring(seperator + 1)
-
-        if (type == "undefined") {
-            return undefined
-        }
-        if (type == "number") {
-            return Number(value)
-        }
-        if (type == "boolean") {
-            return (value === 'true')
-        }
-        if (type == "string") {
-            return value
-        }
-
-    } else {
-        return undefined
-    }
-
-    
-
-}
-var glass = undefined
-
-function getGlass() {
-    if (!glass) {
-        glass = document.createElement("glass")
-        document.body.appendChild(glass)
-        Glass(glass)
-    }
-    return glass
-}
-
-const glassZIndex = 99
-function Glass(element) {
-    element.style.width = "100vw"
-    element.style.height = "100vh"
-    //element.style.backgroundColor = "black"
-    element.style.zIndex = glassZIndex
-    element.style.position = "fixed"
-
-
-    element.Reactive = {
-        Color: new Color(0xff000000),
-        Visibility: 1,
-        MaxOpacity: 0.7
-    }
-    new Reaction(() => {
-        element.style.backgroundColor = element.Color
-    })
-
-    new Reaction(() => {
-        //element.style.backdropFilter = `blur(${element.Visibility*10}px)`;
-        element.style.opacity = element.Visibility * element.MaxOpacity
-        element.style.display = element.Visibility == 0 ? "none" : "block"
-    })
-}
-
-function lerp(a, b, t) {
-    return a + t * (b - a)
-}
-
-function AnimateTo(targetValue, duration) {
-    
-    let result = (property) => {
-        
-        let startValue = property.value
-        let startTime = performance.now()
-
-        return () => {
-            let elapsed = performance.now() - startTime
-            
-            if (elapsed < duration) {
-                window.AnimationFrame
-            }
-            let t = (typeof targetValue === "function") ? targetValue() : targetValue
-            let mormalizedTime = Math.min(elapsed / duration, 1)
-            
-            return lerp(startValue, t, mormalizedTime)
-        }
-    }
-    result.isBindingConstructor = true
-    return result
-}
-
-
-
-
-function PageSideMenus(element) {
-    Page(element)
-
-
- 
-    let glass = getGlass()
-
-    const minSwipeToOpen = 40
-    const minSwipeToClose = 20
-    const swipeThreshold = 10
-
-    let toggle = false
-    element.Events.Click = () => {
-        
-        /*toggle = !toggle
-        element.ContentWidth = AnimateTo(
-            () => toggle ? (element.WindowWidth - 100) : 500,
-            10000)*/
-    }
-
-    element.Reactive = {
-        ContentWidth: 960,
-        SideBarsIconsSize: 48,
-
-        BarsCollapsed: () =>
-            element.Width < Sum(
-                element.ContentWidth,
-                element.LeftSideBar ? element.LeftSideBar.Width : 0,
-                element.RightSideBar ? element.RightSideBar.Width : 0),
-
-        //Content: () => element.Child("Content"),
-
-        SideBarOpen: 0, //-1 left , 1 right
-
-        //LeftSideBar: () => element.LeftSideBar,
-        //LeftSideBarIcon: () => element.LeftSideBarIcon,
-
-        //RightSideBar: () => element.RightSideBar,
-        //RightSideBarIcon: () => element.RightSideBarIcon,
-
-        TopBar: () => element.Content.Content.TopBar,
-
-        Footer: undefined,
-
-        SwipeXAboveThreshold: () => {
-            if (element.SwipeX > swipeThreshold)
-                return element.SwipeX - swipeThreshold
-            if (element.SwipeX < -swipeThreshold)
-                return element.SwipeX + swipeThreshold
-            return 0
-        },
-
-
-        MinSwipeToOpen_LeftSideBar: () => element.LeftSideBar ? Min(minSwipeToOpen, element.LeftSideBar.Width) : undefined,
-        MinSwipeToOpen_RightSideBar: () => element.RightSideBar ? Min(minSwipeToOpen, element.RightSideBar.Width) : undefined,
-
-        SwipeX: 0,
-        SwipeY: 0,
-        Swipe: false,
-
-        LeftSideBarSwipeProgress : 0,
-        RightSideBarSwipeProgress: 0,
-
-    }
-
-
-
-
-    let startX = 0
-    let startY = 0
-
-    const iconMargin = 10
-    const collapsedIconWidth = 6
-    const collapsedIconHeight = 120
-    
-
-    function touchStart() {
-        var touch = event.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
-        
-    }
-    function horizontalTouchMove() {
-        if (!event.cancelable) return
-        var touch = event.touches[0];
-        //console.log("horizontalTouchMove", event.path)
-        let d = Reaction.beginDeferred()
-        element.SwipeX = touch.clientX - startX
-        element.SwipeY = touch.clientY - startY
-        element.Swipe = true
-        d.end()
-        event.preventDefault()
-    }
-
-
-    element.pan = function (x, y) {
-        console.log("pan",element.tagName,x,y)
-        return [x,y]
-    }
-
-    
-    document.Events.TouchStart = {
-        handler: () => {
-            //if (event.pointerType != "touch") return
-
-            //console.log("document TouchStart", event.path)
-            touchStart()
-            document.Events.TouchMove = () => {
-                //console.log("document PointerMove", event.path, event.clientX, event.cancelable)
-                if (event.cancelable) {
-                    var touch = event.touches[0];
-                    let deltaX = Math.abs(touch.clientX - startX)
-                    //console.log("deltaX", deltaX, swipeThreshold)
-                    if (deltaX > swipeThreshold) {
-                        event.preventDefault()
-                        //console.log("horizontalTouchMove...")
-                        element.Events.TouchMove = {
-                            handler: horizontalTouchMove,
-                            passive: false
-                        }
-                    }
-                } else {
-                    //console.log("PointerMove = undefined")
-                    document.Events.TouchMove = undefined
-                    document.Events.TouchEnd = undefined
-                }
-            }
-            element.Events.TouchEnd = () => {
-                //console.log("TouchEnd")
-                element.Swipe = false
-                element.Events.TouchMove = undefined
-                element.Events.TouchEnd = undefined
-            }
-        },
-        passive: false
-    }
-    
-
-    glass.Events.TouchStart = {
-        handler: () => {
-            touchStart()
-
-            glass.Events.TouchMove = {
-                handler: horizontalTouchMove,
-                passive: false
-            }
-
-            glass.Events.TouchEnd = () => {
-                element.Swipe = false
-                glass.Events.TouchMove = undefined
-                glass.Events.TouchEnd = undefined
-            }
-        },
-        passive: false
-    }
-
-    glass.Events.Click = () => {
-        element.SideBarOpen = 0
-    }
-
-    
-
-
-    new Reaction(() => {
-        if (element.TopBar) {
-            if (element.LeftSideBar && element.BarsCollapsed) {
-                element.TopBar.MarginLeft = element.SideBarsIconsSize + iconMargin
-            } else {
-                element.TopBar.MarginLeft = 0
-            }
-        }
-    })
-    new Reaction(() => {
-        if (element.TopBar) {
-            if (element.RightSideBar && element.BarsCollapsed) {
-                element.TopBar.MarginRight = element.SideBarsIconsSize + iconMargin
-            } else {
-                element.TopBar.MarginRight = 0
-            }
-        }
-    })
-    new Reaction(() => {
-        if (element.TopBar) {
-            if ((element.RightSideBar || element.LeftSideBar) && element.BarsCollapsed) {
-                element.TopBar.Height = () => Max(element.TopBar.InternalHeight, element.SideBarsIconsSize)
-            } else {
-                element.TopBar.Height = () => First(element.TopBar.InternalHeight, element.SideBarsIconsSize)
-            }
-        }
-    })
-
-
-
-
-    
-
-
-    new Reaction(() => {
-        if (element.LeftSideBar) {
-            element.LeftSideBar.Depth = glassZIndex + 1
-            //element.LeftSideBar.style.position = "fixed"
-            element.LeftSideBar.Height = () => element.Height
-        }
-    })
-
-    new Reaction(() => {
-        if (element.RightSideBar) {
-            element.RightSideBar.Depth = glassZIndex + 1
-            //element.RightSideBar.style.position = "fixed"
-            element.RightSideBar.Height = () => element.Height
-        }
-    })
-
-
-
-
-    OnTruthify(
-        () => !element.Swipe,
-        () => {
-            if (element.BarsCollapsed) {
-                if (element.SideBarOpen == 0) {
-                    if (element.LeftSideBar && element.SwipeXAboveThreshold > element.MinSwipeToOpen_LeftSideBar) {
-                        element.SideBarOpen = -1
-                        return
-                    }
-                    if (element.RightSideBar && element.SwipeXAboveThreshold < -element.MinSwipeToOpen_RightSideBar) {
-                        element.SideBarOpen = 1
-                        return
-                    }
-                } else {
-                    if (Math.sign(element.SwipeXAboveThreshold) == Math.sign(element.SideBarOpen) && Math.abs(element.SwipeXAboveThreshold) > minSwipeToClose) {
-                        element.SideBarOpen = 0
-                    }
-                }
-            }
-        }
-    )
-
-    new Reaction(() => {
-        if (!element.BarsCollapsed) {
-            element.SideBarOpen = 0
-        }
-    })
-
-    //Glass Visibility
-    new Reaction(() => {
-        if (!element.BarsCollapsed) {
-            glass.Visibility = 0
-        } else {
-            if (element.SideBarOpen == 0) {
-                if (element.Swipe) {
-                    if (element.SwipeXAboveThreshold > 0) {
-                        if (element.LeftSideBar) {
-                            glass.Visibility = Math.min(Math.max(element.SwipeXAboveThreshold / element.MinSwipeToOpen_LeftSideBar, 0), 1)
-                            return
-                        }
-                    }
-                    if (element.SwipeXAboveThreshold < 0) {
-                        if (element.RightSideBar) {
-                            glass.Visibility = Math.min(Math.max(-element.SwipeXAboveThreshold / element.MinSwipeToOpen_RightSideBar, 0), 1)
-                            return
-                        }
-                    }
-                }
-            } else {
-                if (element.Swipe) {
-                    glass.Visibility = Math.min(Math.max(1 - element.SwipeXAboveThreshold * element.SideBarOpen / minSwipeToClose, 0), 1)
-                    return
-                } else {
-                    glass.Visibility = 1
-                    return
-                }
-            }
-        }
-        glass.Visibility = 0
-
-    })
-
-
-    new Reaction(() => {
-        if (element.LeftSideBar) {
-            if (element.BarsCollapsed) {
-                if (element.SideBarOpen == 0) {
-                    if (element.Swipe) {
-                        element.LeftSideBar.X = -element.LeftSideBar.Width + Clamp(element.SwipeXAboveThreshold, 0, element.LeftSideBar.Width)
-                    } else {
-                        element.LeftSideBar.X = -element.LeftSideBar.Width
-                    }
-                } else if (element.SideBarOpen == -1) {
-                    if (element.Swipe) {
-                        element.LeftSideBar.X = Clamp(element.SwipeXAboveThreshold, -element.LeftSideBar.Width, 0)
-
-                    } else {
-                        element.LeftSideBar.X = 0
-                    }
-                }
-            } else {
-                element.LeftSideBar.X = 0
-            }
-        }
-    })
-
-    new Reaction(() => {
-        
-        if (element.RightSideBar) {
-            if (element.BarsCollapsed) {
-                if (element.SideBarOpen == 0) {
-                    if (element.Swipe) {
-                        element.RightSideBar.X = element.Width + Clamp(element.SwipeXAboveThreshold, -element.RightSideBar.Width, 0)
-                    } else {
-                        element.RightSideBar.X = element.Width
-                    }
-                } else if (element.SideBarOpen == 1) {
-                    if (element.Swipe) {
-                        element.RightSideBar.X = element.Width - element.RightSideBar.Width + Clamp(element.SwipeXAboveThreshold, 0, element.RightSideBar.Width)
-                    } else {
-                        element.RightSideBar.X = element.Width - element.RightSideBar.Width
-                    }
-                } else if (element.SideBarOpen == -1) {
-                    element.RightSideBar.X = element.Width 
-                }
-            } else {
-                element.RightSideBar.X = element.Width - element.RightSideBar.Width
-            }
-        }
-    })
-
-
-    new Reaction(() => {
-
-        let LeftBarSize = (element.LeftSideBar && !element.BarsCollapsed) ? Max(element.LeftSideBar.Width, 0) : 0
-
-        let RightBarSize = (element.RightSideBar && !element.BarsCollapsed) ? Max(element.RightSideBar.Width, 0) : 0
-
-        let width = element.Width - LeftBarSize - RightBarSize
-        let innerWidth = Math.min(width, element.ContentWidth)
-        let contentSpace = (width - innerWidth) * 0.5
-
-        if (element.Content) {
-            //element.Content.Height = element.WindowHeight
-            element.Content.LayoutWidth = width// - 2 * contentSpace
-
-
-            element.Content.Content.PaddingLeft = contentSpace
-            element.Content.Content.PaddingRight = contentSpace
-            element.Content.Content.Width = width
-
-            element.Content.LayoutX = LeftBarSize
-            element.Content.LayoutHeight = element.Height//(element.Content.InternalHeight, element.Height)
-        }
-    })
-
-
-
-
-    function ConfugureIcon(icon) {
-        icon.Reactive = {
-            AnimationProgress: 1,
-            AnimationTarget: () => element.Content.ScrollYActual > 0 || icon.BarVisible ? 0 : 1
-        }
-
-        OnChanged(
-            () => icon.AnimationTarget,
-            (p, c) => {
-                icon.AnimationProgress = AnimateTo(c ? 1 : 0, 200)
-            }
-        )
-
-        icon.Y = () => icon.MarginTop
-        
-        icon.Width = () => lerp(collapsedIconWidth, element.SideBarsIconsSize, icon.AnimationProgress)
-        icon.Height = () => lerp(collapsedIconHeight, element.SideBarsIconsSize, icon.AnimationProgress)
-
-        icon.Radius = () => lerp(icon.Width, 0.5 * icon.Width, icon.AnimationProgress)
-        icon.Visibility = () => (element.BarsCollapsed) ? 1 : 0
-        icon.Depth = () => icon.BarVisible ? glassZIndex + 1 : glassZIndex - 1 
-
-    }
-
-    OnChanged(
-        () => element.LeftSideBar && element.LeftSideBarIcon,
-        (p, c) => {
-            if (c) {
-                let icon = element.LeftSideBarIcon
-                ConfugureIcon(icon)
-                icon.Reactive.BarVisible = () => (element.LeftSideBar.Width + element.LeftSideBar.X) > 0                
-                
-                icon.X = () => icon.MarginLeft * icon.AnimationProgress + element.LeftSideBar.X + element.LeftSideBar.Width
-
-                icon.RadiusTopLeft = () => 0.5 * icon.Width * icon.AnimationProgress
-                icon.RadiusBottomLeft = () => 0.5 * icon.Width * icon.AnimationProgress
-
-                icon.Events.Click = () => element.SideBarOpen = -1
-            }
-        }
-    )
-
-    OnChanged(
-        () => element.RightSideBar && element.RightSideBarIcon,
-        (p, c) => {
-            if (c) {
-                let icon = element.RightSideBarIcon
-                ConfugureIcon(icon)
-                icon.Reactive.BarVisible = () => element.RightSideBar.X < element.Width
-
-                icon.X = () => element.RightSideBar.X - icon.MarginRight * icon.AnimationProgress - element.RightSideBarIcon.Width
-
-                icon.RadiusTopRight = () => 0.5 * icon.Width * icon.AnimationProgress
-                icon.RadiusBottomRight = () => 0.5 * icon.Width * icon.AnimationProgress
-
-                icon.Events.Click = () => element.SideBarOpen = 1
-            }
-        }
-    )
-
-
-}
-function SvgIcon(element) {
-
-    element.Reactive = {
-        StrokeColor: undefined,
-        StrokeWidth : undefined,
-    }
-
-    new Reaction(() => {
-        element.children[0].style.fill = element.HierarchyForegroundColor
-    })
-
-    new Reaction(() => {
-        if (element.StrokeColor != undefined)
-            element.children[0].style.stroke = element.StrokeColor
-    })
-
-    new Reaction(() => {
-        if (element.StrokeWidth != undefined)
-            element.children[0].style.strokeWidth = ToCssSize(element.StrokeWidth)
-    })
-}
-
-
-function SvgIconBlock(element) {
-    Block(element)
-    SvgIcon(element)
-
-
-    let width = Number(element.dataset.width)
-    let height = Number(element.dataset.height)
-
-
-    element.Reactive = {
-
-        Aspect: width / height,
-
-        VerticalPaddingSum: () => Sum(element.PaddingTop, element.PaddingBottom, 0),
-        HorizontalPaddingSum: () => Sum(element.PaddingLeft, element.PaddingRight, 0),
-
-        InternalWidth: () => First((element.Height - element.VerticalPaddingSum) * element.Aspect + element.HorizontalPaddingSum, Sum(width, element.HorizontalPaddingSum)),
-        InternalHeight: () => First((element.Width - element.HorizontalPaddingSum) / element.Aspect + element.VerticalPaddingSum, Sum(height, element.VerticalPaddingSum)),
-    }
-
-
-    new Reaction(() => {
-        let content = element.children[0]
-        let w = element.Width - element.HorizontalPaddingSum
-        let h = element.Height - element.VerticalPaddingSum
-        if (w <= 0 || h <= 0) {
-            content.style.display = "none"
-            content.style.width = ""
-            content.style.height = ""
-        } else {
-            content.style.display = ""
-            content.style.left = ToCssSize(element.PaddingLeft)
-            content.style.top = ToCssSize(element.PaddingTop)
-            content.style.width = ToCssSize(w)
-            content.style.height = ToCssSize(h)
-        }
-    })
-
-    
-
-
-    
-}
-
-
-function Thumb(element) {
-    Block(element)
-    element.Reactive = {
-        BackgroundColor: () => element.Parent.HierarchyForegroundColor,
-        
-        Radius: () => Min(element.Width, element.Height) / 2,
-        Depth: 1,
-        Visibility: () => (window.Touch || element.ThumbSizeScale >= 1) ? 0 : element.Hover ? 0.5 : 0.25,
-    }
-}
-
-function SetupPointerDrag(element, func) {
-    element.Events.PointerDown = () => {
-        event.stopPropagation()
-        event.preventDefault()
-        element.setPointerCapture(event.pointerId)
-
-        element.Events.PointerMove = () => {
-            let x = event.movementX
-            let y = event.movementY
-            if (x != 0 || y != 0) {
-                func(x,y)
-            }            
-        }
-        element.Events.PointerUp = () => {
-            element.Events.PointerUp = undefined
-            element.Events.PointerMove = undefined
-        }
-        return false
-    }
-}
-
-
-
-
-
-
-
-function ScrollLayout(element) {
-    Block(element)
-
-    
-
-
-    element.Reactive = {
-        InternalWidth: () => Sum(element.Content.InternalWidth, element.MarginLeft, element.MarginRight),
-        InternalHeight: () => Sum(element.Content.InternalHeight, element.TopOffset, element.BottomOffset),
-        //Content: () => element.Child("Content"),
-
-        /*MarginLeft: () => (element.PaddingLeft!=undefined) ? 0 : element.Content.MarginLeft,
-        MarginTop: () => (element.PaddingTop != undefined) ? 0 : element.Content.MarginTop,
-        MarginRight: () => (element.PaddingRight != undefined) ? 0 : element.Content.MarginRight,
-        MarginBottom: () => (element.PaddingBottom != undefined) ? 0 : element.Content.MarginBottom,*/
-
-        LeftOffset: () => CalcOffset(element, element.Content, "Left"),
-        RightOffset: () => CalcOffset(element, element.Content, "Right"),
-        TopOffset: () => CalcOffset(element, element.Content, "Top"),
-        BottomOffset: () => CalcOffset(element, element.Content, "Bottom"),
-
-        ContentAreaWidth: () => element.Width - element.LeftOffset - element.RightOffset,
-        ContentAreaHeight: () => element.Height - element.TopOffset - element.BottomOffset,
-
-        ScrollX: undefined,
-        ScrollY: undefined, //Storage.Store("scroll", () => element.ScrollYActual),
-
-        ScrollXActual: 0,
-        ScrollYActual: 0,
-
-        ScrollBarThickness: 4,
-        ScrollBarMargin: 2,
-        ShowScrollBars: () => !window.Touch
-    }
-
-    
-
-    let verticalThumb = Create(element, Thumb)
-    verticalThumb.Reactive = {
-        ThumbTravel: () => element.Height - 2 * element.ScrollBarMargin,
-        ThumbPositionScale: () => verticalThumb.ThumbTravel / element.Content.InternalHeight,
-        ThumbSizeScale: () => element.ContentAreaHeight / element.Content.InternalHeight, 
-        X: () => element.Width - verticalThumb.Width - element.ScrollBarMargin,
-        Y: () => element.ScrollBarMargin + element.ScrollYActual * verticalThumb.ThumbPositionScale,
-        Width: () => element.ScrollBarThickness,        
-        Height: () => verticalThumb.ThumbTravel * verticalThumb.ThumbSizeScale,
-    }
-    
-
-    let horizontalThumb = Create(element, Thumb)
-    horizontalThumb.Reactive = {
-        ThumbTravel: () => element.Width - 2 * element.ScrollBarMargin,
-        ThumbPositionScale: () => horizontalThumb.ThumbTravel / element.Content.Width,
-        ThumbSizeScale: () => element.ContentAreaWidth / element.Content.Width,        
-        X: () => element.ScrollBarMargin + element.ScrollXActual * horizontalThumb.ThumbPositionScale,
-        Y: () => element.Height - horizontalThumb.Height - element.ScrollBarMargin,
-        Width: () => horizontalThumb.ThumbTravel * horizontalThumb.ThumbSizeScale,
-        Height: () => element.ScrollBarThickness,        
-    }
-
-    SetupPointerDrag(verticalThumb, (x, y) => {
-        scrollable.scrollTop += y / verticalThumb.ThumbPositionScale
-    })
-
-    SetupPointerDrag(horizontalThumb, (x, y) => {
-        scrollable.scrollLeft += x / horizontalThumb.ThumbPositionScale
-    })
-
-
-    let scrollable = document.createElement("scrollable")
-    element.appendChild(scrollable)
-
-    scrollable.style.touchAction = "manipulation"
-    scrollable.style.overflow = "auto"
-
-
-    
-    
-    new Reaction(() => {
-        scrollable.style.left = ToCssSize(element.LeftOffset)
-        scrollable.style.top = ToCssSize(element.TopOffset)
-        scrollable.style.width = ToCssSize(element.ContentAreaWidth)
-        scrollable.style.height = ToCssSize(element.ContentAreaHeight)
-    })
-
-
-    scrollable.Events.Scroll = () => {
-        let d = Reaction.beginDeferred()
-        element.ScrollXActual = scrollable.scrollLeft
-        element.ScrollYActual = scrollable.scrollTop
-        d.end()
-    }
-
-
-    new Reaction(() => {
-        scrollable.appendChild(element.Content)
-        element.Content.LayoutWidth = () => Max(element.Content.InternalWidth, element.ContentAreaWidth)
-        element.Content.LayoutHeight = () => Max(element.Content.InternalHeight, element.ContentAreaHeight)
-    })
-
-    new Reaction(() => {
-        window.requestAnimationFrame(() => {
-            scrollable.scrollTop = element.ScrollY
-            scrollable.scrollLeft = element.ScrollX
-        });
-    })
-
-
-
-
-}
-function Column(element) {
-    Block(element)
-
-    element.Reactive = {
-        InternalWidth: () => {
-
-            let internalWidth = undefined
-            for (let child of element.Children) {
-                let left = CalcOffset(element, child, "Left")
-                let right = CalcOffset(element, child, "Right")
-
-                //let spaceLeft = Max(element.PaddingLeft, child.MarginLeft, 0)
-                //let spaceRight = Max(element.PaddingRight, child.MarginRight, 0)
-
-                let internalWidthByCurrentChild = Sum(child.InternalWidth, left + right)
-
-                internalWidth = Max(internalWidth, internalWidthByCurrentChild)
-            }
-            //console.log("internalWidth", internalWidth)
-            return internalWidth
-        },
-
-        //InternalHeight: undefined,
-        //Height: () => element.InternalHeight,
-    }
-
-
-    new Reaction(() => {
-        for (let child of element.Children) {
-            if (child.isBlock) {
-
-                child.LayoutX = () => CalcOffset(element, child, "Left")               
-
-                child.LayoutWidth = () => {
-                    let left = CalcOffset(element, child, "Left")
-                    let right = CalcOffset(element, child, "Right")
-                    return element.Width - left - right
-                }
-            }
-        }
-    })
-
-    new Reaction(() => {
-        let previousMargin = undefined
-        let freeSpaceUnits = 0
-        let freeSpacePixels
-        let contentHeight = 0
-
-        let isFirstBlock = true
-        let lastChild = undefined
-
-        function addElement(child, assignDimensions) {
-            if (child.isSpace) {
-                if (assignDimensions) {
-                    contentHeight += freeSpacePixels / freeSpaceUnits * child.Between
-                } else {
-                    freeSpaceUnits += child.Between
-                }
-                return true;
-            }
-
-            if (child.isBlock) {
-
-                lastChild = child
-
-                if (isFirstBlock) {
-                    let offset = CalcOffset(element, child, "Top")
-                    //console.log(element)
-                    //console.log(contentHeight, offset)
-                    contentHeight += offset
-                } else {
-                    let offset = Max(child.MarginTop, previousMargin)
-                    contentHeight += offset
-                }
-                isFirstBlock = false
-
-                //console.log("child.Height", Max(child.Height, 0), child)
-
-                /*let margin = (previousMargin == undefined)
-                    ? CalcOffset()
-                    : Max(child.MarginTop, previousMargin)
-                contentHeight += margin*/
-
-
-                if (assignDimensions) {
-                    //console.log("child.LayoutY", contentHeight)
-                    child.LayoutY = contentHeight
-                }
-                contentHeight += Max(child.Height, 0)
-
-                previousMargin = child.MarginBottom || 0
-
-                return true
-            }
-            return true
-        }
-
-
-        
-
-        for (let i of element.Children) {
-            if (!addElement(i, false)) {
-                return
-            }
-        }
-
-
-        let bottomOffset = CalcOffset(element,lastChild,"Bottom")
-
-        contentHeight += bottomOffset// Max(previousMargin, element.PaddingBottom)
-
-
-        previousMargin = element.PaddingTop || 0
-        element.InternalHeight = contentHeight;
-        if (!element.Height)
-            return
-
-        freeSpacePixels = element.Height - contentHeight;// Math.max( element.Height - contentHeight, 0)
-        //console.log(element.Height, contentHeight, element)
-        /*if (freeSpacePixels < 0) {//overflow-y: overlay;
-            element.style.overflowY = "auto"
-            freeSpacePixels = 0
-            if (!element.innerSizeHolder) {
-                element.innerSizeHolder = document.createElement('holder')
-                element.innerSizeHolder.style.position = "absolute"
-                element.appendChild(element.innerSizeHolder)
-                element.innerSizeHolder.style.width = "1px"
-            }
-            element.innerSizeHolder.style.height = contentHeight + "px"
-        } else {
-            element.style.overflowY = ""
-            if (element.innerSizeHolder) {
-                element.removeChild(element.innerSizeHolder)
-                element.innerSizeHolder = undefined
-            }
-        }*/
-
-        //console.log("freeSpacePixels", freeSpacePixels)
-        isFirstBlock = true
-        contentHeight = 0
-
-        for (let i of element.Children) {
-            if (!addElement(i, true)) {
-                return
-            }
-        }
-    })
-
-
-}
-
-function Paragraph(element) {
-
-    Block(element)
-
-
-    element.Reactive = {
-        Selectable: true,
-        InternalWidth: () => Sum(element.MaxContentWidth,element.PaddingLeft, element.PaddingRight),
-
-        InternalHeight: undefined,
-
-        MaxContentWidth: undefined,
-        MinContentWidth: undefined,
-
-        MaxContentHeight: undefined,
-        MinContentHeight: undefined,
-
-        PaddingLeft: () => (element.BackgroundColor != undefined) ? 10 : undefined,
-        PaddingRight: () => (element.BackgroundColor != undefined) ? 10 : undefined,
-        PaddingTop: () => (element.BackgroundColor != undefined) ? 8 : undefined,
-        PaddingBottom: () => (element.BackgroundColor != undefined) ? 8 : undefined,
-
-        MarginLeft: () => (element.BackgroundColor != undefined) ? 0 : 10,
-        MarginRight: () => (element.BackgroundColor != undefined) ? 0 : 10,
-        MarginTop: () => (element.BackgroundColor != undefined) ? 0 : 8,
-        MarginBottom: () => (element.BackgroundColor != undefined) ? 0 : 8,
-
-    }
-
-
-    new Reaction(() => {
-
-        const testFontSize = 128;
-
-        let content = element.children[0]
-
-        content.classList.add("inline-container")
-
-        //content.style.position = "initial"
-        content.style.fontSize = testFontSize + "px";
-        content.style.width = "min-content"
-        var minWidthRect = content.getBoundingClientRect()
-        content.style.width = "max-content"
-        var maxWidthRect = content.getBoundingClientRect()
-
-        content.style.fontSize = ""
-        content.style.width = ""
-
-
-        element.MaxContentWidth = () =>  element.HierarchyFontSize / testFontSize * maxWidthRect.width
-        element.MinContentWidth = () =>  element.HierarchyFontSize / testFontSize * minWidthRect.width
-        element.MaxContentHeight = () => element.HierarchyFontSize / testFontSize * minWidthRect.height
-        element.MinContentHeight = () => element.HierarchyFontSize / testFontSize * maxWidthRect.height
-
-    })
-
-    new Reaction(() => {
-        let content = element.children[0]
-        /*
-        Left,
-        Center,
-        Right,
-        Justify,
-        JustifyIncludingLastLine
-         */
-        if (element.TextAlignmentHorizontal == "JustifyIncludingLastLine") {
-            content.style.textAlign = "justify"
-            content.style.textAlignLast = "justify"
-        } else {
-            content.style.textAlignLast = ""
-            if (element.TextAlignmentHorizontal === undefined) {
-                content.style.textAlign = ""
-            } else {
-                content.style.textAlign = element.TextAlignmentHorizontal.toLowerCase()
-            }
-        }
-    })
-
-
-    new Reaction(() => {
-        element.style.width = ToCssSize(element.Width)
-        let content = element.children[0]
-        content.style.transformOrigin = ""
-        content.style.transform = ""
-        content.style.width = ""
-        content.style.display = ""
-        content.style.left = ToCssSize(element.PaddingLeft)
-        content.style.top = ToCssSize(element.PaddingTop)
-
-        let minContentWidthWithPaddings = Sum(element.MinContentWidth, element.PaddingLeft, element.PaddingRight)
-
-        if (minContentWidthWithPaddings > element.Width) {          
-
-            let scale = Sum(element.Width, -element.PaddingLeft, -element.PaddingRight) / element.MinContentWidth
-
-            if (scale > 0) {
-                content.style.width = "min-content"
-                content.style.transformOrigin = "top left"
-                content.style.transform = `scale(${scale}, ${scale})`
-                element.InternalHeight = Sum(element.MaxContentHeight * scale, element.PaddingTop, element.PaddingBottom)
-            } else {
-                content.style.display = "none"
-                element.InternalHeight = Sum(element.PaddingTop, element.PaddingBottom)
-            }            
-            return
-        }
-
-        let maxContentWidthWithPaddings = Sum(element.MaxContentWidth, element.PaddingLeft, element.PaddingRight)
-        if (Math.abs(element.Width - maxContentWidthWithPaddings) < 0.001) {
-
-            element.InternalHeight = Sum(element.MinContentHeight, element.PaddingTop, element.PaddingBottom) 
-            content.style.width = "max-content"
-
-            return
-        }
-        
-
-        content.style.width = ToCssSize(Sum(element.Width, -element.PaddingLeft, -element.PaddingRight))
-
-        var rect = content.getBoundingClientRect()
-        element.InternalHeight = Sum(rect.height, element.PaddingTop, element.PaddingBottom)
-
-    })
-
-    HeightToStyle(element)
-}
-
-function ParagraphBase(element) {
-
-    Paragraph(element)
-}
-function Inline(element) {
-    BaseModifier(element)
-
-
-}
-function Space(element) {
-    element.isSpace = true
-    Hierarchical(element)
-
-    element.Reactive = {
-        Before: 1,
-        Between: 1,
-        After: 1
-    }
-}
-
-
-function RowMeasurer(startMargin) {
-    let _this = this
-    _this.margin = startMargin
-    _this.currentX = 0
-
-    _this.add = function (child) {
-        let spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
-        _this.currentX += spaceLeft + child.Width
-        _this.margin = child.MarginRight
-    }
-
-    _this.finish = function (endMargin) {
-        let spaceRight = First(Max(endMargin, _this.margin), 0)
-        _this.currentX += spaceRight
-    }
-}
-
-function RowBuilder(element) {
-    let _this = this
-
-    let startMargin = First(element.PaddingLeft, 0)
-    let endMargin = First(element.PaddingRight, 0)
-    let maxWidth = element.Width
-
-    _this.margin = startMargin;
-    _this.currentX = 0
-
-    _this.currentLineHardY = 0
-    _this.currentLineSoftY = element.PaddingTop
-    _this.currentY = 0
-
-
-    //_this.newLineHardY = 0
-    //_this.newLineSoftY = 0
-
-    _this.lineIsEmpty = true
-
-    _this.currentLine = []
-
-    _this.finalizeCurrentLine = function () {
-
-        let margin = startMargin 
-        let x = 0
-        let newLineHardY = 0
-        let newLineSoftY = 0
-        
-        let availableSpace = maxWidth - _this.currentX - Max(_this.margin, element.PaddingRight, 0)
-        let spaceUnits = 0
-        for (let i = 0; i < _this.currentLine.length; i++) {
-            let child = _this.currentLine[i]
-            if (child.isSpace) {
-                switch (i) {
-                    case 0:
-                        spaceUnits += child.Before
-                        break;
-                    case _this.currentLine.length-1:
-                        spaceUnits += child.After
-                        break;
-                    default:
-                        spaceUnits += child.Between
-                }
-
-            }
-        }
-        
-        let pixelBySpaceUnits = spaceUnits>0 ?  availableSpace / spaceUnits : 0
-
-        for (let i = 0; i < _this.currentLine.length; i++){
-
-            let child = _this.currentLine[i]
-
-            if (child.isBlock) {
-                let spaceLeft = First(Max(margin, child.MarginLeft), 0)
-
-                var yA = Sum(_this.currentLineHardY, child.MarginTop)
-                var yB = _this.currentLineSoftY
-                var y = Max(yA, yB)
-
-                x += spaceLeft
-                child.LayoutX = x
-                x += child.Width
-                child.LayoutY = y
-                margin = child.MarginRight
-
-                var hardBottom = y + child.Height
-
-                newLineHardY = Max(newLineHardY, hardBottom)
-                newLineSoftY = Max(newLineSoftY, Sum(hardBottom, child.MarginBottom))
-
-                //continue
-            }
-            
-            if (child.isSpace) {
-                switch (i) {
-                    case 0:
-                        x += child.Before * pixelBySpaceUnits
-                        break;
-                    case _this.currentLine.length - 1:
-                        x += child.After * pixelBySpaceUnits
-                        break;
-                    default:
-                        x += child.Between * pixelBySpaceUnits
-                }
-            }
-        }
-
-        let lastSpace = undefined
-        if (_this.currentLine.length > 0) {
-            let last = _this.currentLine[_this.currentLine.length - 1]
-            if (last.isSpace) {
-                lastSpace = last
-            }
-        }
-        _this.currentLine = []
-        if (lastSpace) {
-            _this.currentLine.push(lastSpace)
-        }
-
-
-        _this.lineIsEmpty = true
-        _this.margin = startMargin
-        _this.currentX = 0
-        _this.currentLineHardY = newLineHardY;
-        _this.currentLineSoftY = newLineSoftY;
-
-    }
-
-
-
-    _this.layout = function (child) {
-        let spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
-        
-        let spaceRight = Max(endMargin, child.MarginRight)
-        if (child.isBlock) {
-
-            if ((_this.currentX + spaceLeft + child.InternalWidth + spaceRight) > maxWidth) {
-                if (_this.currentLine.length > 0) {
-                    _this.finalizeCurrentLine()
-                    spaceLeft = First(Max(_this.margin, child.MarginLeft), 0)
-                }
-
-                if ((spaceLeft + child.InternalWidth + spaceRight) > maxWidth) {
-                    child.LayoutWidth = maxWidth - spaceLeft - spaceRight
-                } else {
-                    child.LayoutWidth = undefined
-                }
-            } else {
-                child.LayoutWidth = undefined
-            }
-            _this.currentX += Sum(spaceLeft, child.Width)
-            //console.log("_this.currentX", _this.currentX)
-            _this.margin = child.MarginRight
-
-            //_this.currentLine.push(child)
-
-        } else {
-
-            //_this.currentLineSpaceUnits = 0
-        }
-        _this.currentLine.push(child)
-    }
-    
-
-
-
-
-}
-
-function Row(element) {
-    Block(element)
-
-    element.isRow = true
-
-    element.Reactive = {
-
-        InternalWidth: () => {
-            let measurer = new RowMeasurer(
-                First(element.PaddingLeft, 0)
-            );
-
-            for (let child of element.children) {
-                measurer.add(child)
-            }
-            measurer.finish();
-            return measurer.currentX
-        },
-
-        //Width: () => element.InternalWidth,
-
-        ContentWidth: undefined,
-        ContentHeight: undefined,
-
-        /*Width: () => First(
-            element.LayoutWidth,
-            Sum(
-                element.ContentWidth,
-                element.PaddingLeft,
-                element.PaddingRight
-            )
-        ),*/
-        //Height: 150//() => Sum(element.ContentHeight, element.PaddingTop, element.PaddingButtom),
-    }
-
-    new Reaction(() => {
-
-        /*let contentWidth = undefined
-
-        let line = []
-        let lineContentWidth = 0
-        let lineGrowUnits = 0
-        let previousMargin = First(element.PaddingLeft,0)*/
-
-        let builder = new RowBuilder(element);
-
-        for (let child of element.Children) {
-            builder.layout(child)
-
-        }
-        builder.finalizeCurrentLine()
-
-        var hA = Sum(builder.currentLineHardY, element.PaddingBottom)
-        var hB = builder.currentLineSoftY
-
-        element.InternalHeight = Max(hA, hB)
-
-
-    })
-
-}
-</script><style>html {
-    display: initial;
-    position: initial;
-    overscroll-behavior-x: none;
-    overflow: hidden;
-    overflow-x: hidden;
-    overflow-y: hidden;
-   
-}
-
-.js {
-    //display: none;
-    visibility: hidden;
-    position: absolute;
-    overflow: hidden;
-    overflow-x: hidden;
-    overflow-y: hidden;
-    white-space: normal;
-    line-height: 1.5;
-    touch-action: none;
-    margin: 0;
-}
-
-
-
-:not(.js) material-design-icon-block>svg {
-    width: 24px
-}
-
-
-
-
-
-.js * {
-    scrollbar-width: none;
-}
-.js *::-webkit-scrollbar {
-    display: none;
-}
-
-head {
-    display: none;
-}
-
-
-
-.js * {
-    tab-size: 4;
-    touch-action: inherit;
-    display: block;
-    overflow-x: visible;
-    overflow-y: visible;
-    //z-index: inherit;
-    position: absolute;
-    //position: inherit;
-    margin: 0;
-    visibility: inherit;
-    margin-block-start: 0;
-    margin-block-end: 0;
-    margin-inline-start: 0;
-    margin-inline-end: 0;
-    line-height: inherit;
-    text-decoration-line: inherit;
-    color: inherit;
-    justify-content: inherit;
-    align-content: inherit;
-    text-align: inherit;
-    box-sizing: border-box;
-    word-break: keep-all;
-    //cursor: inherit;
-    //word-wrap: break-word;
-    //overflow: clip;
-    //overflow: hidden;
-    white-space: inherit;
-}
-
-.js a * {
-    //text-decoration-line: underline;
-}
-
-
-
-    /** {
-        outline: 0.1px solid #f00 !important;
-    }*/
-
-
-
-
-
-.inline-container {
-    white-space: break-spaces;
-}
-
-.inline-container * {
-    
-    position: static;
-    display: inline;
-}
-
-.inline-container a * {
-    text-decoration-line: underline;
-}
-
-/*body.js paragraph>p * {
-    
-}*/
-
-</style><style>@font-face {font-family: 'Roboto';font-weight: 700;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-@font-face {font-family: 'Roboto';font-weight: 300;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-@font-face {font-family: 'Roboto';font-weight: 400;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
-</style></head><body style="font-family:Roboto;font-weight:400;"><script>{let element = Constructor(PageSideMenus);element.Reactive={BackgroundColor:new Color(0.9725490196078431,0.9294117647058824,0.9215686274509803),ContentWidth:800,SideBarsIconsSize:48,FontSize:16}}</script><svg-icon-block data-child data-property="LeftSideBarIcon" data-width="24" data-height="24" style="font-family:;"><script>{let element = Constructor(SvgIcon,SvgIconBlock);element.Reactive={BackgroundColor:new Color(0.42745098039215684,0.34901960784313724,0.47843137254901963),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" id="mdi-menu" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" /></svg><script>Pop()</script></svg-icon-block><scroll-layout data-child data-property="LeftSideBar" style="font-family:;"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content" style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0.25,0.25,0.25)}}</script><a href="CodeComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Code
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ImageComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Image
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="MaterialDesignIconsComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Material Design Icons
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ParagraphComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Paragraph
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ScrollLayoutComponent/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Scroll Layout
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="VideoPlayer/ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Video Player
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><script>Pop()</script></scroll-layout><svg-icon-block data-child data-property="RightSideBarIcon" data-width="24" data-height="24" style="font-family:;"><script>{let element = Constructor(SvgIcon,SvgIconBlock);element.Reactive={BackgroundColor:new Color(0.47843137254901963,0.34901960784313724,0.1411764705882353),PaddingLeft:8,PaddingRight:8,PaddingTop:8,PaddingBottom:8,MarginLeft:8,MarginRight:8,MarginTop:8,MarginBottom:8}}</script><svg xmlns="http://www.w3.org/2000/svg" id="mdi-translate" viewBox="0 0 24 24"><path d="M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07M18.5,10H16.5L12,22H14L15.12,19H19.87L21,22H23L18.5,10M15.88,17L17.5,12.67L19.12,17H15.88Z" /></svg><script>Pop()</script></svg-icon-block><column data-child data-property="RightSideBar" style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={BackgroundColor:new Color(0.47843137254901963,0.34901960784313724,0.1411764705882353)}}</script><a href="en" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>En
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><a href="ru" target="_self" style="display:contents;"><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginLeft:0,MarginRight:0,MarginTop:0,MarginBottom:0,PaddingTop:10,PaddingBottom:10,PaddingLeft:20,PaddingRight:20}}</script><p>Ru
-</p><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={BackgroundColor:(e) => e.ParentBlock.HierarchyForegroundColor,Visibility:(e) => (e.ParentBlock.Hover?0.1:0),Depth:-1,Y:(e) => First(e.MarginTop,0),Height:(e) => Sum(e.ParentBlock.Height,(-e.MarginTop),(-e.MarginLeft)),X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight))}}</script><script>Pop()</script></block><script>Pop()</script></paragraph></a><script>Pop()</script></column><scroll-layout data-child data-property="Content" style="font-family:;"><script>{let element = Constructor(ScrollLayout);}</script><column data-property="Content" style="font-family:;"><script>{let element = Constructor(Column);}</script><paragraph data-child data-property="TopBar" style="font-family:;font-weight:200;"><script>{let element = Constructor(Paragraph);element.Reactive={Height:(e) => Max(e.Root.SideBarsIconsSize,e.InternalHeight),TextAlignmentHorizontal:"Center",MarginTop:0,MarginBottom:0,FontSize:(e) => e.Root.SideBarsIconsSize}}</script><p>Components
-</p><script>Pop()</script></paragraph><paragraph data-child data-property="Description" style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>Компоненты для создания страниц.
-</p><script>Pop()</script></paragraph><block data-child style="font-family:;"><script>{let element = Constructor(Block);element.Reactive={Height:1,BackgroundColor:new Color(0.5019607843137255,0.5019607843137255,0.5019607843137255),MarginBottom:20}}</script><script>Pop()</script></block><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>1
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>2
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>3
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>4
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>5
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>6
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>7
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>8
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>9
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>10
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>11
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>12
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>13
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>14
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>15
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>16
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>17
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>18
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>19
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => (window.Touch?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>20
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={BackgroundColor:(e) => ((e.Root.Width<800)?new Color(1,0.7529411764705882,0.796078431372549):new Color(0,0,0))}}</script><p>Paragraph <a href="ParagraphComponent/ru" target="_self" style="display:contents;"><inline data-child style="font-family:;"><script>{let element = Constructor(Inline);}</script>Paragraph<script>Pop()</script></inline></a>
-</p><script>Pop()</script></paragraph><ws data-child><script>{let element = Constructor(Space);}</script><script>Pop()</script></ws><row data-child data-property="Footer" style="font-family:;"><script>{let element = Constructor(Row);element.Reactive={BackgroundColor:new Color(0.20784313725490197,0.3137254901960784,0.4392156862745098),PaddingTop:20,PaddingBottom:20,X:(e) => First(e.MarginLeft,0),Width:(e) => Sum(e.ParentBlock.Width,(-e.MarginLeft),(-e.MarginRight)),PaddingLeft:(e) => e.ParentBlock.PaddingLeft,PaddingRight:(e) => e.ParentBlock.PaddingRight}}</script><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Links
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут ссылки
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 2
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>тут будут еще ссылки
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><column data-child style="font-family:;"><script>{let element = Constructor(Column);element.Reactive={MarginLeft:10,MarginRight:10,MarginTop:20,MarginBottom:20}}</script><paragraph data-child style="font-family:;font-weight:700;"><script>{let element = Constructor(Paragraph);element.Reactive={FontSize:18,MarginTop:0}}</script><p>Column 3
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>и тут будут ссылки
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);}</script><p>line 2
-</p><script>Pop()</script></paragraph><paragraph data-child style="font-family:;"><script>{let element = Constructor(Paragraph);element.Reactive={MarginBottom:0}}</script><p>line 3
-</p><script>Pop()</script></paragraph><script>Pop()</script></column><ws data-child><script>{let element = Constructor(Space);element.Reactive={Before:1.401298464324817E-45,After:1.401298464324817E-45}}</script><script>Pop()</script></ws><script>Pop()</script></row><script>Pop()</script></column><script>Pop()</script></scroll-layout><script>Pop()</script><svg style="display:none;"><defs></defs></svg></body></html>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0"><title>Components</title><meta property="og:site_name" content="StaticSharp"><meta property="og:title" content="Components"><meta property="twitter:title" content="Components"><meta property="twitter:card" content="summary_large_image"><meta property="og:url" content="https://staticsharp.github.io/Components/ru"><meta property="twitter:url" content="https://staticsharp.github.io/Components/ru"><meta property="description" content="Компоненты для создания страниц."><meta property="og:description" content="Компоненты для создания страниц."><meta property="twitter:description" content="Компоненты для создания страниц."><meta property="og:type" content="website"><link rel="icon" type="image/svg+xml" href="../Assets/50ADFCBE1D494D00887F429A64139198.svg"><script>function ToCssSize(n){return n!=undefined?n.toFixed(4)+"px":""}function ToCssValue(n){return n!=undefined?n:""}function DepthToStyle(n){return new Reaction(()=>{n.style.zIndex=n.Depth})}function XToStyle(n){return new Reaction(()=>{n.style.left=ToCssSize(n.X)})}function YToStyle(n){return new Reaction(()=>{n.style.top=ToCssSize(n.Y)})}function WidthToStyle(n){return new Reaction(()=>{n.style.width=ToCssSize(n.Width)})}function HeightToStyle(n){return new Reaction(()=>{n.style.height=ToCssSize(n.Height)})}function Enumerable(n){if(typeof n=="function"){this[Symbol.iterator]=n;return}if(typeof n[Symbol.iterator]=="function"){this[Symbol.iterator]=n[Symbol.iterator].bind(n);return}throw new Error("Invalid source type");}function as(n,t){return n==undefined?undefined:typeof n.as=="function"?n.as(t):undefined}function convert(n,t){var i=as(n,t);if(i==undefined){let i=`Failed to convert element to type ${t}`;console.error(i,n);throw new Error(i);}return i}function _deleteScript(){let n=document.currentScript,t=n.parentElement;return t.removeChild(n),t}function getCurrentParent(){return parentStack.length>0?parentStack[parentStack.length-1]:undefined}function SetCurrentSocket(n){var i=_deleteScript(),t=getCurrentParent();currentSocket=t.Reactive[n]}function AssignToParentProperty(n){var t=_deleteScript();let i=getCurrentParent();i[n]=t}function AssignPreviousTagToParentProperty(n){var t=_deleteScript();let i=t.lastChild,r=getCurrentParent();r[n]=i}function Constructor(){var n=_deleteScript();for(let t of arguments)t(n);return currentSocket&&currentSocket.setValue(n),currentSocket=n.Reactive.FirstChild,parentStack.push(n),n}function Pop(){let n=_deleteScript();currentSocket=n.Reactive.NextSibling;parentStack.pop();typeof n.AfterChildren=="function"&&n.AfterChildren()}function CamelToKebab(n){return n.replace(/[A-Z]+(?![a-z])|[A-Z]/g,(n,t)=>(t?"-":"")+n.toLowerCase())}function CreateSocket(n,t,i){let r=new Property;return r.attach(n,t),r.onAssign=function(n,t){if(n!=t){if(n){n.place=undefined;n.Parent=undefined;n.Layer();let t=n.NextSibling;while(t)t.Parent=undefined,t.Layer(),t=t.NextSibling}if(t&&(t.place&&t.place.setValue(undefined),t.place=r,t.Parent=i,t.Layer(),i!=undefined)){let n=t.NextSibling;while(n)n.Parent=i,n.Layer(),n=n.NextSibling}}},r}function CreateCollectionSocket(n,t,i){let u=t+"First",f=CreateSocket(n,u,i);var r=new DomLinkedList(f);n[t]=r;n["Existing"+t]=r.Where(n=>n.Exists)}function Create(n,...t){let r=t[0],u=CamelToKebab(r.name),i=document.createElement(u);n.appendChild(i);i.Parent=n;for(let n of t)n(i);return i}function ReactionBase(n){let t=this;t.triggeringProperties=new Set;t.func=n;t.addTriggeringProperty=function(n){t.triggeringProperties.add(n);n.dependentReactions.add(t)};t.unsubscribeFromTriggeringProperty=function(n){return n.dependentReactions.delete(t)?(t.triggeringProperties.delete(n),!0):!1};t.unsubscribeFromTriggeringProperties=function(){if(t.triggeringProperties.size!=0){for(let n of t.triggeringProperties)n.dependentReactions.delete(t);t.triggeringProperties.clear()}};t.execute=function(n){let i=Reaction.current;Reaction.current=t;t.unsubscribeFromTriggeringProperties();try{return t.func(n)}finally{Reaction.current=i}};t.dirtImmune=!1}function Reaction(n){let t=this;if(ReactionBase.call(t,n),t.makeDirty=function(){t.dirtImmune||Reaction.deferred.add(t)},Reaction.deferred)Reaction.deferred.add(t);else{let n=Reaction.beginDeferred();try{t.execute()}catch(i){console.warn(i)}n.end()}}function Binding(n,t){let i=this;ReactionBase.call(i,n);i.dirty=!0;i.makeDirty=function(){i.dirty||(i.dirty=!0,t())}}function Property(){let n=this;n.name="";n.object=null;n.dependentReactions=new Set;n.binding=undefined;n.makeDirty=function(){n.binding.makeDirty()};n.onBindingBecameDirty=function(){n.makeDependentReactionsDirty()};n.makeDependentReactionsDirty=function(){if(n.dependentReactions.size!=0){var t=Reaction.beginDeferred();n.dependentReactions.forEach(n=>n.makeDirty());t.end()}};n.executionInProgress=!1;n.replaceValue=function(n){let t=Reaction.current;Reaction.current=undefined;let i=n(this.getValue());this.setValue(i);Reaction.current=t};n.getValue=function(){if(Reaction.current&&Reaction.current.addTriggeringProperty(n),n.binding&&n.binding.dirty){if(n.executionInProgress)return n.reactionsWhoReceivedOldValue==undefined&&(n.reactionsWhoReceivedOldValue=new Set),n.reactionsWhoReceivedOldValue.add(Reaction.current),n.value;try{var t=n.value;try{n.executionInProgress=!0;n.value=n.binding.execute(n.object)}finally{if(n.executionInProgress=!1,n.binding.dirty=!1,n.reactionsWhoReceivedOldValue){if(n.value!==t){let t=Reaction.beginDeferred();n.reactionsWhoReceivedOldValue.forEach(n=>n.makeDirty());t.end()}n.reactionsWhoReceivedOldValue=undefined}}}catch(i){console.error(i)}}return n.value};n.onAssign=undefined;n.setValue=function(t){var i;if(typeof t=="function"){if(t.isBindingConstructor&&(t=t(n),console.log("isBindingConstructor",t,this.object)),n.binding){if(n.binding.func===t)return;n.binding.unsubscribeFromTriggeringProperties()}n.binding=new Binding(t,n.onBindingBecameDirty)}else{if(n.binding&&(n.binding.unsubscribeFromTriggeringProperties(),n.binding=undefined),n.onAssign){i=Reaction.beginDeferred();n.onAssign(n.value,t);i.end()}if(n.value===t)return;n.value=t}i=Reaction.beginDeferred();n.makeDependentReactionsDirty();i.end()};n.attach=function(t,i){n.name=i;n.object=t;let r={get:function(){return n.getValue()},set:function(t){n.setValue(t)}};return Object.defineProperty(t,i,r),t["__"+i]=n,n}}function OnChanged(n,t){let i=undefined;return new Reaction(()=>{let r=n();if(r!=i){let n=Reaction.beginNonReactive();t(i,r);n.end();i=r}})}function OnTruthify(n,t){let i=undefined;return new Reaction(()=>{let r=n();if(r===!0&&!i==!0){let n=Reaction.beginNonReactive();t();n.end()}i=r})}function Entity(n){n.isEntity=!0;n.as=function(t){return n.is(t)?n:undefined};n.is=function(t){return n["is"+t]!=undefined}}function CreateLayer(n){function u(n){let i=n.binding!=undefined,r=i?n.binding.func:n.value,t=new Property;return t.name="Backup_"+n.name,t.object=n.object,t.setValue(r),t}function i(n,i){let r=t.get(i);if(r==undefined){if(!Property.exists(n,i))throw new Error(`Element does not have property "${i}"`);r=u(n.Reactive[i]);t.set(i,r)}return r}let t=new Map;let r=function(){let i=Reaction.beginDeferred();t.forEach(function(t,i){let r=t.binding?t.binding.func:t.value;n[i]=r});t.clear();i.end()};r.element=n;let f=new Proxy(r,{get(n,t){var r=i(n.element,t);return r.getValue()},set(n,t,r){var u=i(n.element,t);return n.element[t]=r,!0}});n.Layer=f}function ClearLayer(n){if(n.Layer&&n.Layer.backupProperties){let t=Reaction.beginDeferred();n.Layer.backupProperties.forEach(function(t,i){let r=t.binding?t.binding.func:t.value;n[i]=r});n.Layer.backupProperties.clear();t.end()}}function GetParentElementByPredicate(n,t){for(var i=n;i!=undefined;){if(t(i))return i;i=i.parentElement}return undefined}function SyncChildren(n,t){let i=[...n.children];t=[...t];for(let r=0;r<i.length;r++){let u=i[r];t.includes(u)||n.removeChild(u)}for(let i=0;i<t.length;i++){let r=t[i];n.children[i]!=r&&n.insertBefore(r,n.children[i])}}function Hierarchical(n){Entity(n);n.isHierarchical=!0;CreateCollectionSocket(n,"UnmanagedChildren",n);CreateSocket(n,"NextSibling",()=>n.Parent);CreateLayer(n);n.Reactive={Exists:!0,Root:()=>n.Parent.Root,Parent:undefined}}function DomLinkedList(n){this.firstChildProperty=n;Enumerable.call(this,function*(){for(var t=n.getValue();t!=undefined;)yield t,t=t.NextSibling})}function Color(){let n=[...arguments],t=this;if(t.r=0,t.g=0,t.b=0,t.a=undefined,n.length!=0){if(n.length==1){let u=n[0];if(typeof u=="number"){t.b=(u&255)/255;t.g=((u&65280)>>>8)/255;t.r=((u&16711680)>>>16)/255;t.a=((u&4278190080)>>>24)/255;return}if(typeof u=="string"&&u.substr(0,1)=="#"){var i=(u.length-1)/3,r=[17,1,.062272][i-1]/255;t.r=parseInt(u.substr(1,i),16)*r;t.g=parseInt(u.substr(1+i,i),16)*r;t.b=parseInt(u.substr(1+2*i,i),16)*r;return}console.warn("Color: Invalid arguments",u)}if(n.length>=3&n.length<=4){if(n.slice(0,3).some(n=>typeof n!="number")){console.warn("Color: Invalid arguments types",n);return}if(t.r=n[0],t.g=n[1],t.b=n[2],n[3]!=undefined){if(typeof n[3]!="number"){console.warn("Color: Invalid arguments types",n);return}t.a=n[3]}return}console.warn("Color: Invalid arguments",n)}}function BaseModifier(n){Hierarchical(n);n.isModifier=!0;let t=n.as;n.as=function(i){let r=t(i);if(r!=undefined)return r;if(n.Modifiers!=undefined){let t=n.as;n.as=()=>undefined;r=n.Modifiers.First(n=>n.is(i),()=>undefined);n.as=t}return r};n.Reactive={Hover:!1,Selectable:undefined,BackgroundColor:undefined,HierarchyBackgroundColor:()=>n.BackgroundColor||n.Parent.HierarchyBackgroundColor,ForegroundColor:()=>n.BackgroundColor!=undefined?n.BackgroundColor.ContrastColor():undefined,HierarchyForegroundColor:()=>{let t=n.ForegroundColor;if(t)return t;let i=n.Parent;return i&&(t=i.HierarchyForegroundColor,t)?t:new Color(0)},TextDecorationColor:()=>n.ForegroundColor!=undefined?n.ForegroundColor:undefined,Modifiers:Enumerable.Empty(),FontSize:undefined,HierarchyFontSize:()=>n.FontSize||n.Parent.HierarchyFontSize,Radius:undefined,RadiusTopLeft:()=>n.Radius,RadiusTopRight:()=>n.Radius,RadiusBottomLeft:()=>n.Radius,RadiusBottomRight:()=>n.Radius,Visibility:1};new Reaction(()=>{let t=n.Visibility;t==0?(n.style.visibility="hidden",n.style.opacity=""):t==1?(n.style.visibility="",n.style.opacity=""):(n.style.opacity=t,n.style.visibility="")});new Reaction(()=>{n.style.borderTopLeftRadius=ToCssSize(n.RadiusTopLeft),n.style.borderTopRightRadius=ToCssSize(n.RadiusTopRight),n.style.borderBottomLeftRadius=ToCssSize(n.RadiusBottomLeft),n.style.borderBottomRightRadius=ToCssSize(n.RadiusBottomRight)});new Reaction(()=>{let t=n.Selectable;n.style.userSelect=t!=undefined?n.Selectable?"text":"none":""});new Reaction(()=>{n.style.backgroundColor=ToCssValue(n.BackgroundColor)});new Reaction(()=>{n.style.color=ToCssValue(n.ForegroundColor)});new Reaction(()=>{n.style.textDecorationColor=ToCssValue(n.TextDecorationColor)})}function Page(n){function i(){return t.clientWidth}function r(){return t.clientHeight}function e(n){let t=window.matchMedia(`screen and (resolution: ${window.devicePixelRatio}dppx)`);t.addEventListener("change",()=>{n(),e(n)},{once:!0})}n.classList.add("js");n.isRoot=!0;Block(n);var t=document.body.parentNode;let u=0;window.Reactive={Root:n,AnimationFrame:()=>(u++,window.requestAnimationFrame(()=>{window.Reactive.AnimationFrame.makeDirty()}),u),UserInteracted:!1,DevicePixelRatio:window.devicePixelRatio,Touch:!1};let f=window.matchMedia("(pointer: coarse)");window.Touch=f.matches;f.onchange=n=>{window.Touch=n.matches};e(()=>window.DevicePixelRatio=window.devicePixelRatio);n.Reactive={Root:n,FontSize:16,HierarchyFontSize:()=>n.FontSize,BackgroundColor:new Color("#fff"),HierarchyBackgroundColor:()=>n.BackgroundColor,HierarchyForegroundColor:()=>n.ForegroundColor};let o=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){yield*o;n.svgDefs&&(yield n.svgDefs);n.extras&&(yield n.extras)});new Reaction(()=>{n.Width=i(),n.Height=r()});window.onmousedown=()=>{window.UserInteracted=!0};window.onresize=function(){let t=Reaction.beginDeferred();n.Width=i();n.Height=r();t.end()}}function CalcOffset(n,t,i){let u="Padding"+i,r="Margin"+i;return n[u]!=undefined?Math.max(n[u],t[r]||0):n[r]==undefined?t[r]||0:t[r]==undefined?0:Math.max(t[r]-n[r],0)}function GetClipRect(n,t,i,r,u){let e=-t,o=-i,s=-n.Width+r+t,h=-n.Height+u+i,c=`${o}px ${s}px ${h}px ${e}px`,f="";return(n.RadiusTopLeft!=undefined||n.RadiusTopRight!=undefined||n.RadiusBottomLeft!=undefined||n.RadiusBottomRight!=undefined)&&(f=` round ${n.RadiusTopLeft||0}px ${n.RadiusTopRight||0}px ${n.RadiusBottomRight||0}px ${n.RadiusBottomLeft||0}px`),`inset(${c}${f})`}function Block(n){BaseModifier(n);n.isBlock=!0;n.Reactive={Depth:0,PaddingLeft:undefined,PaddingTop:undefined,PaddingRight:undefined,PaddingBottom:undefined,MarginLeft:undefined,MarginTop:undefined,MarginRight:undefined,MarginBottom:undefined,X:0,Y:0,AbsoluteX:()=>{let t=n.Parent;return t?Num.Sum(n.Parent.AbsoluteX,n.Parent.ScrollX,n.X):0},AbsoluteY:()=>{let t=n.Parent;return t?Num.Sum(n.Parent.AbsoluteY,-n.Parent.ScrollY,n.Y):0},Width:undefined,Height:undefined,ClipByParent:!1};DepthToStyle(n);XToStyle(n);YToStyle(n);WidthToStyle(n);HeightToStyle(n);new Reaction(()=>{n.style.clipPath=n.ClipByParent&&n.Parent?GetClipRect(n.Parent,n.X,n.Y,n.Width,n.Height):""});new Reaction(()=>{n.style.fontSize=ToCssSize(n.FontSize)});n.Events.MouseEnter=()=>n.Hover=!0;n.Events.MouseLeave=()=>n.Hover=!1;n.HtmlNodesOrdered=new Enumerable(function*(){yield*n.ExistingUnmanagedChildren});new Reaction(()=>{let t=[...n.HtmlNodesOrdered];SyncChildren(n,t)})}function AspectBlock(n){Block(n);n.Reactive={NativeWidth:undefined,NativeHeight:undefined,NativeAspect:n=>n.NativeWidth/n.NativeHeight,Aspect:n=>n.NativeAspect,Width:()=>Num.First(n.Height*n.Aspect,n.NativeWidth),Height:()=>Num.First(n.Width/n.Aspect,n.NativeHeight),Fit:"Inside",GravityVertical:0,GravityHorizontal:0};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.content;yield*n.UnmanagedChildren});new Reaction(()=>{let t=n.content;if(n.Fit=="Stretch")t.style.width="100%",t.style.height="100%";else{let s=n.Width/n.Height,f=0,e=0,i=n.Width,r=n.Height,u=n.Fit=="Inside"?1:-1,o=n.NativeAspect;u*s<u*o?(r=i/o,e=(n.Height-r)*(.5*u*n.GravityVertical+.5)):(i=r*o,f=(n.Width-i)*(.5*u*n.GravityHorizontal+.5));t.style.top=ToCssSize(e);t.style.left=ToCssSize(f);t.style.width=ToCssSize(i);t.style.height=ToCssSize(r);t.style.clipPath=GetClipRect(n,f,e,i,r)}})}function SvgIcon(n){n.Reactive={StrokeColor:undefined,StrokeWidth:undefined};new Reaction(()=>{n.children[0].style.fill=n.HierarchyForegroundColor});new Reaction(()=>{n.StrokeColor!=undefined&&(n.children[0].style.stroke=n.StrokeColor)});new Reaction(()=>{n.StrokeWidth!=undefined&&(n.children[0].style.strokeWidth=ToCssSize(n.StrokeWidth))})}function SvgIconBlock(n){AspectBlock(n);SvgIcon(n);n.Reactive={};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.content;yield*n.UnmanagedChildren})}function Modifier(n){Entity(this);this.isModifier=!0;let t=this,i=this.as;this.as=function(t){let r=i(t);if(r!=undefined)return r;let u=this.as;return this.as=()=>undefined,r=as(n,t),this.as=u,r};t.Reactive={Enabled:!0}}function Button(n){Modifier.call(this,n);this.isButton=!0;let t=this;t.Reactive={EventPropagation:!1};n.addEventListener("click",()=>{t.Script(t),event.stopPropagation()},!1)}function Cursor(n){Modifier.call(this,n);this.isCursor=!0;let t=this;t.Reactive={Option:"Pointer"};new Reaction(()=>{var i=t.Option;n.style.cursor=i===undefined||i===""?"":CamelToKebab(i)})}function Hover(n){Modifier.call(this,n);this.isHover=!0;let t=this;t.Reactive={Value:!1};new Reaction(()=>{n.Exists||(t.Value=!1)});n.addEventListener("mouseenter",()=>t.Value=!0,!1);n.addEventListener("mouseleave",()=>t.Value=!1,!1)}function BorderRadius(n){Modifier.call(this,n);this.isBorderRadius=!0;let t=this;t.Reactive={Radius:undefined,RadiusTopLeft:n=>n.Radius,RadiusTopRight:n=>n.Radius,RadiusBottomLeft:n=>n.Radius,RadiusBottomRight:n=>n.Radius};new Reaction(()=>{n.style.borderTopLeftRadius=ToCssSize(t.RadiusTopLeft),n.style.borderTopRightRadius=ToCssSize(t.RadiusTopRight),n.style.borderBottomLeftRadius=ToCssSize(t.RadiusBottomLeft),n.style.borderBottomRightRadius=ToCssSize(t.RadiusBottomRight)})}function Thumb(n){Block(n);n.Reactive={BackgroundColor:()=>n.Parent.HierarchyForegroundColor,Radius:()=>Num.Min(n.Width,n.Height)/2,Depth:1,Visibility:()=>window.Touch||n.ThumbSizeScale>=1?0:n.Hover?.5:.25}}function SetupPointerDrag(n,t){n.Events.PointerDown=()=>(event.stopPropagation(),event.preventDefault(),n.setPointerCapture(event.pointerId),n.Events.PointerMove=()=>{let n=event.movementX,i=event.movementY;(n!=0||i!=0)&&t(n,i)},n.Events.PointerUp=()=>{n.Events.PointerUp=undefined,n.Events.PointerMove=undefined},!1)}function ScrollLayout(n){Block(n);var u=undefined;let t=document.createElement("scrollable");t.style.touchAction="manipulation";t.style.overflow="auto";t.Events.Scroll=()=>{if(u!="Property"){u="Event";let i=Reaction.beginDeferred();n.ScrollX=t.scrollLeft;n.ScrollY=t.scrollTop;i.end();u=undefined}};n.Reactive={InternalWidth:()=>Num.Sum(n.Child.Layer.Width,n.LeftOffset,n.RightOffset),InternalHeight:()=>Num.Sum(n.Child.Layer.Height,n.TopOffset,n.BottomOffset),Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,LeftOffset:()=>CalcOffset(n,n.Child,"Left"),RightOffset:()=>CalcOffset(n,n.Child,"Right"),TopOffset:()=>CalcOffset(n,n.Child,"Top"),BottomOffset:()=>CalcOffset(n,n.Child,"Bottom"),ChildAreaWidth:()=>n.Width-n.LeftOffset-n.RightOffset,ChildAreaHeight:()=>n.Height-n.TopOffset-n.BottomOffset,ScrollX:undefined,ScrollY:undefined,ScrollBarThickness:4,ScrollBarMargin:2,ShowScrollBars:()=>!window.Touch};CreateSocket(n,"Child",n);CreateSocket(n,"VerticalThumb",n).setValue(Create(n,Thumb));CreateSocket(n,"HorizontalThumb",n).setValue(Create(n,Thumb));let i=n.VerticalThumb;i.Reactive={ThumbTravel:()=>n.Height-2*n.ScrollBarMargin,ThumbPositionScale:()=>i.ThumbTravel/n.Child.Layer.Height,ThumbSizeScale:()=>n.ChildAreaHeight/n.Child.Layer.Height,X:()=>n.Width-i.Width-n.ScrollBarMargin,Y:()=>n.ScrollBarMargin+n.ScrollY*i.ThumbPositionScale,Width:()=>n.ScrollBarThickness,Height:()=>i.ThumbTravel*i.ThumbSizeScale};let r=n.HorizontalThumb;r.Reactive={ThumbTravel:()=>n.Width-2*n.ScrollBarMargin,ThumbPositionScale:()=>r.ThumbTravel/n.Child.Width,ThumbSizeScale:()=>n.ChildAreaWidth/n.Child.Width,X:()=>n.ScrollBarMargin+n.ScrollX*r.ThumbPositionScale,Y:()=>n.Height-r.Height-n.ScrollBarMargin,Width:()=>r.ThumbTravel*r.ThumbSizeScale,Height:()=>n.ScrollBarThickness};n.HtmlNodesOrdered=new Enumerable(function*(){yield i;yield r;yield t;yield*n.UnmanagedChildren});new Reaction(()=>{SyncChildren(t,[n.Child])});SetupPointerDrag(i,(n,r)=>{t.scrollTop+=r/i.ThumbPositionScale});SetupPointerDrag(r,n=>{t.scrollLeft+=n/r.ThumbPositionScale});new Reaction(()=>{n.Child.Layer.Width=Math.max(n.Child.Layer.Width,n.ChildAreaWidth),n.Child.Layer.Height=Math.max(n.Child.Layer.Height,n.ChildAreaHeight)});new Reaction(()=>{t.style.left=ToCssSize(n.LeftOffset),t.style.top=ToCssSize(n.TopOffset),t.style.width=ToCssSize(n.ChildAreaWidth),t.style.height=ToCssSize(n.ChildAreaHeight)});new Reaction(()=>{(n.ScrollY,n.ScrollX,u!="Event")&&(u="Property",window.requestAnimationFrame(()=>{t.scrollTop=n.ScrollY,t.scrollLeft=n.ScrollX,u=undefined}))})}function SessionStorage(n){Modifier.call(this,n);this.isSessionStorage=!0;let t=this;t.Reactive={StoredValue:undefined,ValueToStore:undefined};new Reaction(()=>{sessionStorage.setItem(t.name,t.ValueToStore)})}function BlockWithChildren(n){Block(n);CreateCollectionSocket(n,"Children",n);let t=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){yield*t;yield*n.ExistingChildren})}function LayoutPropertiesNames(n){this.side=[n?"Top":"Left",n?"Bottom":"Right"];this.cordinate=n?"Y":"X";this.dimension=n?"Height":"Width"}function LayoutBorder(n,t,i=0,r=0){this.layoutPrpertiesNames=t;this.sideIndex=n;this.oppositeSideIndex=(n+1)%2;this.marginStop=i;this.bodyStop=r}function LinearLayoutRegion(n){let t=new LayoutPropertiesNames(n);this.vertical=n;this.border=[new LayoutBorder(0,t),new LayoutBorder(1,t),]}function LinearLayout(n){BlockWithChildren(n);n.Reactive={Vertical:!0,ItemGrow:1,Gap:0,GapGrow:0,PrimaryGravity:undefined,SecondaryGravity:undefined,Reverse:!1,OrderedChildren:n=>n.Reverse?n.ExistingChildren.Reverse().ToArray():n.ExistingChildren.ToArray(),InternalSecondarySize:t=>{var i=new LayoutPropertiesNames(!n.Vertical);let r=Num.Sum(t["Padding"+i.side[0]],t["Padding"+i.side[1]],0);for(let n of t.OrderedChildren){let u=CalcOffset(t,n,i.side[0]),f=CalcOffset(t,n,i.side[1]),e=Num.Sum(n.Layer[i.dimension],u+f);r=Num.Max(r,e)}return r},InternalPrimarySize:n=>{let t=LinearLayoutRegion.formContainer(n,n.Vertical),i=n.Gap;for(const[r,u]of n.OrderedChildren.entries())r>0&&t.border[0].ShiftByPixels(i),t.border[0].Shift(u);return t.GetSize()},InternalWidth:n=>n.Vertical?n.InternalSecondarySize:n.InternalPrimarySize,InternalHeight:n=>n.Vertical?n.InternalPrimarySize:n.InternalSecondarySize,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,PrimarySize:n=>n.Vertical?n.Height:n.Width,SecondarySize:n=>n.Vertical?n.Width:n.Height};new Reaction(()=>{var i=n.SecondarySize,t;if(i!=undefined)if(t=new LayoutPropertiesNames(!n.Vertical),n.SecondaryGravity==undefined)for(let r of n.OrderedChildren){let u=CalcOffset(n,r,t.side[0]),f=CalcOffset(n,r,t.side[1]),e=i-u-f;r.Layer[t.cordinate]=u;r.Layer[t.dimension]=e}else for(let r of n.OrderedChildren){let u=CalcOffset(n,r,t.side[0]),s=CalcOffset(n,r,t.side[1]),f=r.Layer[t.dimension],e=i-u-s,o=e-f;o>0?u+=(.5*n.SecondaryGravity+.5)*o:f=e;r.Layer[t.cordinate]=u;r.Layer[t.dimension]=f}});new Reaction(()=>{if(n.PrimarySize!=undefined){let r=n.OrderedChildren;var t=new LayoutPropertiesNames(n.Vertical);let i=LinearLayoutRegion.formContainer(n,n.Vertical),u=n.Gap;if(n.InternalPrimarySize>n.PrimarySize){let f=n.PrimarySize/n.InternalPrimarySize;for(const[e,n]of r.entries()){e>0&&i.border[0].ShiftByPixels(u*f);let r=n.Layer[t.dimension],o=i.border[0].Shift(n,r);n.Layer[t.cordinate]=o*f;n.Layer[t.dimension]=r*f}}else{let f=0,e=0,h=n.PrimarySize-n.InternalPrimarySize,o=0,s=0;if(n.PrimaryGravity==undefined)f=n.ItemGrow,e=n.GapGrow,o=f*r.length+e*(r.length-1),s=o!=0?h/o:0;else{let t=(.5*n.PrimaryGravity+.5)*h;i.border[0].ShiftByPixels(t)}for(const[o,n]of r.entries()){o>0&&i.border[0].ShiftByPixels(u+e*s);let r=n.Layer[t.dimension]||0;r=r+f*s;let h=i.border[0].Shift(n,r);n.Layer[t.cordinate]=h;n.Layer[t.dimension]=r}}}})}function MenuResponsive(n){BlockWithChildren(n);n.isMenuResponsive=!0;CreateSocket(n,"Logo",n);CreateSocket(n,"Button",n);CreateSocket(n,"Dropdown",n);n.Reactive={PrimaryGravity:1,SecondaryGravity:0,DropdownExpanded:n=>n.Button.as("Toggle").Value,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,InternalHeight:n=>{var t=new LayoutPropertiesNames(!0);let i=Num.Sum(n["Padding"+t.side[0]],n["Padding"+t.side[1]]),u=n.Children.ToArray(),f=n.Dropdown.Children.ToArray(),r=u.concat(f);n.Logo&&r.push(n.Logo);for(let u of r){let r=CalcOffset(n,u,t.side[0]),f=CalcOffset(n,u,t.side[1]),e=Num.Sum(u.Layer[t.dimension],r+f);i=Num.Max(i,e)}return i},InternalWidth:n=>{let t=LinearLayoutRegion.formContainer(n,!1),i=[...n.Children],r=[...n.Dropdown.Children],u=i.concat(r);n.Logo&&t.border[0].Shift(n.Logo);for(let n of u)t.border[0].Shift(n);return t.GetSize()}};let r=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){let t=n.Logo;t&&t.Exists&&(yield t);let i=n.Button;i.Exists&&(yield i);let u=n.Dropdown;u.Exists&&(yield u);yield*r});let i=function(t,i){let u=[],r=LinearLayoutRegion.formContainer(n,!1);if(i){let t=r.border[1].Shift(n.Button),i=n.Width-n.Button.Layer.Width-t;n.Button.Layer.X=i}n.Logo&&(n.Logo.Layer.X=r.border[0].Shift(n.Logo));let f=n.Width-r.GetSize();for(const[i,e]of t.entries()){let t=r.border[0].Shift(e);if(r.GetSize()>n.Width)break;f=n.Width-r.GetSize();u[i]=t}return{menuItemsPositions:u,extraPixels:f}};new Reaction(()=>{let r=[...n.Children],e=[...n.Dropdown.Children],u=r.concat(e),{menuItemsPositions:t,extraPixels:f}=i(u,!1);if(t.length<u.length&&({menuItemsPositions:t,extraPixels:f}=i(u,!0)),t.length<r.length){let i=n.Children.RemoveRange(t.length,r.length-t.length);n.Dropdown.Children.InsertRange(0,i)}else if(t.length>r.length){let i=n.Dropdown.Children.RemoveRange(0,t.length-r.length);n.Children.InsertRange(r.length,i)}let o=f*(.5*n.PrimaryGravity+.5);for(const[n,i]of t.entries())u[n].Layer.X=i+o});let t=function(t){let i=LinearLayoutRegion.formContainer(n,!0),r=i.border[0].Shift(t);i=LinearLayoutRegion.formContainer(n,!0);let u=i.border[1].Shift(t),f=n.Height-t.Height-u;return((n.SecondaryGravity+1)*f+(1-n.SecondaryGravity)*r)/2};new Reaction(()=>{n.Logo&&(n.Logo.Layer.Y=t(n.Logo));let i=t(n.Button);n.Button.Layer.Y=i;for(let i of[...n.Children])i.Layer.Y=t(i)})}function Image(n){AspectBlock(n)}function Toggle(n){Modifier.call(this,n);this.isToggle=!0;let t=this;t.Reactive={Value:!1};n.addEventListener("click",()=>{t.Value=!t.Value},!1)}function Paragraph(n){Block(n);n.Reactive={Selectable:!0,InternalWidth:()=>Num.Sum(n.MaxContentWidth,n.PaddingLeft,n.PaddingRight),InternalHeight:undefined,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,MaxContentWidth:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.maxWidth,MinContentWidth:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.minWidth,MaxContentHeight:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.maxHeight,MinContentHeight:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.minHeight,PaddingLeft:()=>n.BackgroundColor!=undefined?10:undefined,PaddingRight:()=>n.BackgroundColor!=undefined?10:undefined,PaddingTop:()=>n.BackgroundColor!=undefined?8:undefined,PaddingBottom:()=>n.BackgroundColor!=undefined?8:undefined,MarginLeft:()=>n.BackgroundColor!=undefined?0:10,MarginRight:()=>n.BackgroundColor!=undefined?0:10,MarginTop:()=>n.BackgroundColor!=undefined?0:8,MarginBottom:()=>n.BackgroundColor!=undefined?0:8};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.inlineContainer;yield*n.UnmanagedChildren});new Reaction(()=>{let t=n.inlineContainer;n.TextAlignmentHorizontal=="JustifyIncludingLastLine"?(t.style.textAlign="justify",t.style.textAlignLast="justify"):(t.style.textAlignLast="",t.style.textAlign=n.TextAlignmentHorizontal===undefined?"":n.TextAlignmentHorizontal.toLowerCase())});new Reaction(()=>{if(n.Width!=undefined){n.style.width=ToCssSize(n.Width);let t=n.inlineContainer;t.style.transformOrigin="";t.style.transform="";t.style.width="";t.style.display="";t.style.left=ToCssSize(n.PaddingLeft);t.style.top=ToCssSize(n.PaddingTop);let r=Num.Sum(n.MinContentWidth,n.PaddingLeft,n.PaddingRight);if(n.Width<r){let i=Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight)/n.MinContentWidth;i>0?(t.style.width="min-content",t.style.transformOrigin="top left",t.style.transform=`scale(${i}, ${i})`,n.InternalHeight=Num.Sum(n.MaxContentHeight*i,n.PaddingTop,n.PaddingBottom)):(t.style.display="none",n.InternalHeight=Num.Sum(n.PaddingTop,n.PaddingBottom));return}let u=Num.Sum(n.MaxContentWidth,n.PaddingLeft,n.PaddingRight),i=n.Width-u;if(i>-.001){let r=Num.Sum(n.MinContentHeight,n.PaddingTop,n.PaddingBottom);n.InternalHeight=r;t.style.width=i>.001?ToCssSize(Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight)):"max-content";return}var f=t.getBoundingClientRect();n.InternalHeight=Num.Sum(f.height,n.PaddingTop,n.PaddingBottom)}});HeightToStyle(n)}function AbstractInline(n){BaseModifier(n)}var Num={},Animation,currentSocket,parentStack,parentGetDepth,Storage;Num.IsNaNOrNull=function(n){return n===null?!0:isNaN(n)};Num.Max=function(){let n=undefined;for(let t of arguments)Num.IsNaNOrNull(t)||(n=n===undefined?t:Math.max(n,t));return n};Num.Min=function(){let n=undefined;for(let t of arguments)Num.IsNaNOrNull(t)||(n=n===undefined?t:Math.min(n,t));return n};Num.Clamp=function(n,t,i){return Num.Max(t,Num.Min(i,n))};Num.Sum=function(){let n=!1,t=0;for(let i of arguments)Num.IsNaNOrNull(i)||(n=!0,t+=i);return n?t:undefined};Num.First=function(){for(let n of arguments)if(n!==undefined&&!isNaN(n)&&n!==null)return n;return undefined};Num.PiecewiseLinearInterpolation=function(n,...t){if(n==undefined)return undefined;if(t.length===0)throw new Error("Keyframes list must not be empty.");if(t.length===1||(t.sort((n,t)=>n[0]-t[0]),n<t[0][0]))return t[0][1];if(n>=t[t.length-1][0])return t[t.length-1][1];for(let i=1;i<t.length;i++)if(n<t[i][0]){const r=t[i][0]-t[i-1][0],u=(n-t[i-1][0])/r,f=t[i][1]-t[i-1][1];return t[i-1][1]+f*u}throw new Error("Keyframes are not sorted correctly.");};Enumerable.Empty=function(){return new Enumerable(function*(){})};Enumerable.prototype.ToArray=function(){return[...this]};Enumerable.Range=function(n,t){return new Enumerable(function*(){for(let i=n;i<n+t;i++)yield i})};Enumerable.FromArguments=function(){return new Enumerable(arguments)};Enumerable.prototype.Where=function(n){let t=this,i=function*(){for(let i of t)n(i)&&(yield i)};return new Enumerable(i)};Enumerable.prototype.Select=function(n){let t=this,i=function*(){for(let i of t)yield n(i)};return new Enumerable(i)};Enumerable.prototype.First=function(n=()=>true,t=()=>{throw new Error("Out of range");}){let r=this,u=r[Symbol.iterator]();for(;;){var i=u.next();if(i.done)return t();if(n(i.value))return i.value}};Enumerable.prototype.Last=function(n=()=>true){let t=[...this];if(t.length>0)for(let i=t.length-1;i>=0;i--)if(n(t[i]))return t[i]};Enumerable.prototype.Count=function(n){let t=[...this];if(n===undefined)return t.length;let i=0;for(let r=0;r<t.length;r++)n(t[r])&&i++;return i};Enumerable.prototype.Any=function(n=()=>true){var t;let r=this,i=r[Symbol.iterator]();if(n===undefined)return t=i.next(),!t.done;for(;;){if(t=i.next(),t.done)return!1;if(n(t.value))return!0}};Enumerable.prototype.Aggregate=function(n,t){let i=[...this],r=0;if(arguments.length==1){if(i.length==0)return undefined;r=1;t=i[0]}for(let u=r;u<i.length;u++)t=n(t,i[u]);return t};Enumerable.prototype.Max=function(){return this.Aggregate((n,t)=>n>t?n:t)};Enumerable.prototype.Min=function(){return this.Aggregate((n,t)=>n<t?n:t)};Enumerable.prototype.Sum=function(){return this.Aggregate((n,t)=>n+t)};Enumerable.prototype.Order=function(n=(n,t)=>n==t?0:(n<t?-1:1)){let t=[...this];return t.sort(n),new Enumerable(t)};Enumerable.prototype.OrderBy=function(n,t=function(t,i){let r=n(t);let u=n(i);return r==u?0:r<u?-1:1}){return this.Order(t)};Enumerable.prototype.Reverse=function(){let n=[...this],t=function*(){for(let t=n.length-1;t>=0;t--)yield n[t]};return new Enumerable(t)};Enumerable.prototype.Skip=function(n){let t=this,i=function*(){for(let i of t)n>0?n--:yield i};return new Enumerable(i)};Enumerable.prototype.Take=function(n){let t=this,i=function*(){for(let i of t)if(n>0)yield i,n--;else break};return new Enumerable(i)};Animation={};Animation.Duration=function(n,t){function u(n,t,i){return n+i*(t-n)}let i=n*1e3;if(this.startValue==undefined)return this.startTime=performance.now(),this.startValue=t,this.targetValue=t,this.currentValue=t,t;t!=this.targetValue&&(this.startTime=performance.now(),this.startValue=this.currentValue,this.targetValue=t);let r=performance.now()-this.startTime;r<i&&window.AnimationFrame;let f=Math.min(r/i,1);return this.currentValue=u(this.startValue,this.targetValue,f),this.currentValue};Animation.SpeedLimit=function(n,t){if(this.currentValue==undefined)return this.currentValue=t,t;if(this.currentValue!=t){let i=performance.now();if(this.currentValueTime==undefined)this.currentValueTime=i;else{let u=(i-this.currentValueTime)*.001;this.currentValueTime=i;let f=t-this.currentValue,r=u*n;this.currentValue=Math.sign(f)>0?Math.min(this.currentValue+r,t):Math.max(this.currentValue-r,t)}this.currentValue!=t?window.AnimationFrame:this.currentValueTime=undefined}return this.currentValue};currentSocket=undefined;parentStack=[];Reaction.prototype=Object.create(ReactionBase.prototype);Reaction.prototype.constructor=Reaction;Reaction.beginDeferred=function(){return Reaction.deferred?{end:function(){}}:(Reaction.deferred=new Set,{end:function(){let n=64;while(Reaction.deferred.size>0&n>0){let t=Array.from(Reaction.deferred);for(let n of t){Reaction.deferred.delete(n);try{n.execute()}catch(i){console.warn(i)}}n--}n==0&&console.error("Recursive property binding",Reaction.deferred);Reaction.deferred=undefined}})};Reaction.beginNonReactive=function(){if(!Reaction.current){let n=Reaction.current;return Reaction.current=undefined,{end:function(){Reaction.current=n}}}return{end:function(){}}};Binding.prototype=Object.create(ReactionBase.prototype);Binding.prototype.constructor=Binding;Property.exists=function(n,t){var i=!!Object.getOwnPropertyDescriptor(n,t),r=n.hasOwnProperty("__"+t);return i&&r};Property.nameAvailable=function(n,t){return Object.getOwnPropertyDescriptor(n,t)?!1:n.hasOwnProperty(t)?!1:!0};Object.defineProperty(Object.prototype,"Reactive",{get:function(){return new Proxy(this,{get(n,t){return n["__"+t]},set:function(n,t,i){if(n.hasOwnProperty("__"+t)){const r=n["__"+t];r.setValue(i)}else{let r=new Property;r.setValue(i);r.attach(n,t)}}})},set:function(n){let t=this.Reactive,i=Reaction.beginDeferred();if(n instanceof Object)for(const[i,r]of Object.entries(n))t[i]=r;i.end()}});Object.defineProperty(Object.prototype,"Events",{get:function(){const n="___";return new Proxy(this,{get(t,i){return t[n+i]},set:function(t,i,r){function u(r){t[n+i]=r;t.addEventListener(i,r.handler,r)}if(i=i.toLowerCase(),t.hasOwnProperty(n+i)){let r=t[n+i];r!==undefined&&t.removeEventListener(i,r.handler)}r!==undefined&&(typeof r=="function"?u({handler:r,capture:!1}):typeof r=="object"?(typeof r.handler!="function"&&console.error("If the value is an object, it must have a 'handler' field of type 'function'"),r.capture=!1,u(r)):console.warn(`Type '${typeof r}' is invalid for event. To remove event handler assign 'undefined'`))}})}});parentGetDepth=1;Object.setPrototypeOf(DomLinkedList.prototype,Enumerable.prototype);DomLinkedList.prototype.InsertRange=function(n,t){if(n<0)throw new Error(`"startIndex" out of range : ${n}`);let i=this.firstChildProperty,r=0;while(r<n){if(!i.getValue())throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${count}`);r++;i=i.getValue().__NextSibling}var u=i.getValue();let f=Reaction.beginDeferred();i.setValue(t[0]);t[t.length-1].NextSibling=u;for(let[n,i]of t.entries())n<t.length-1&&(i.NextSibling=t[n+1]);f.end()};DomLinkedList.prototype.RemoveRange=function(n,t){if(t<1||n<0)throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${t}`);let i=this.firstChildProperty,u=i,r=undefined,f=[];for(let e=0;e<n+t;e++){if(!i.getValue())throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${t}`);e==n&&(u=i);e>=n&&f.push(i.getValue());e==n+t-1&&(r=i.getValue());i=i.getValue().__NextSibling}let e=Reaction.beginDeferred();return u.setValue(r.NextSibling),r.NextSibling=undefined,e.end(),f};DomLinkedList.prototype.Insert=function(n,t){this.InsertRange(n,[t])};DomLinkedList.prototype.RemoveAt=function(n){var t=this.RemoveRange(n,1);return t[0]};Color.prototype.toString=function(){let n=this.a||1;return`rgba(${Math.round(255*this.r)},${Math.round(255*this.g)},${Math.round(255*this.b)},${n})`};Color.CplusC=function(n,t){return new Color(n.r+t.r,n.g+t.g,n.b+t.b,n.a+t.a||n.a||t.a)};Color.CplusN=function(n,t){return new Color(n.r+t,n.g+t,n.b+t,n.a+t)};Color.NplusC=function(n,t){return new Color(n+t.r,n+t.g,n+t.b,n+t.a)};Color.CminusC=function(n,t){return new Color(n.r-t.r,n.g-t.g,n.b-t.b,n.a-t.a||n.a||t.a)};Color.CminusN=function(n,t){return new Color(n.r-t,n.g-t,n.b-t,n.a-t)};Color.NminusC=function(n,t){return new Color(n-t.r,n-t.g,n-t.b,n-t.a)};Color.CmulC=function(n,t){return new Color(n.r*t.r,n.g*t.g,n.b*t.b,n.a*t.a||n.a||t.a)};Color.CmulN=function(n,t){return new Color(n.r*t,n.g*t,n.b*t,n.a*t)};Color.NmulC=function(n,t){return new Color(n*t.r,n*t.g,n*t.b,n*t.a)};Color.FromGrayscale=function(n){return new Color(n,n,n)};Color.FromIntRGB=function(n){return new Color((n>>16&255)/255,(n>>8&255)/255,(n&255)/255)};Color.FromIntChannelsRGB=function(n,t,i){return new Color(n/255,t/255,i/255)};Color.FromIntChannelsRGBA=function(n,t,i,r){return new Color(n/255,t/255,i/255,r/255)};Color.Lerp=function(n,t,i){return n.Lerp(t,i)};Color.prototype.Lerp=function(n,t){var i=1-t,r=Num.First(this.a*i+n.a*t,this.a,n.a),u=this.r*i+n.r*t,f=this.g*i+n.g*t,e=this.b*i+n.b*t;return new Color(u,f,e,r)};Color.prototype.ContrastColor=function(n=1){var t=.2125*this.r+.7154*this.g+.0721*this.b,i=t>.5?new Color(0,0,0,1):new Color(1,1,1,1);return this.Lerp(i,n)};Storage={};Storage.Elements={};Storage.Restore=function(n,t){let r=sessionStorage,i=r.getItem(n);if(Storage.Elements[n]==undefined&&(Storage.Elements[n]=new Reaction(()=>{let i=t();r.setItem(n,typeof i+" "+i)})),i!=null){let r=i.indexOf(" "),n=i.substring(0,r),t=i.substring(r+1);if(n=="undefined")return undefined;if(n=="number")return Number(t);if(n=="boolean")return t==="true";if(n=="string")return t}else return undefined},function(){function u(){document.documentElement.style.visibility="hidden"}function f(){document.documentElement.style.visibility="visible"}function n(n,t){const i=new IntersectionObserver(n=>{t(n),i.disconnect()});for(const t of n)i.observe(t)}function e(t){const i=document.querySelectorAll(".inline-container");if(i.length==0){t();return}for(const n of i)n.style.fontSize=Paragraph.testFontSize+"px",n.style.width="min-content";n(i,r=>{for(const n of r){const t=n.boundingClientRect;n.target.minWidth=t.width;n.target.maxHeight=t.height}for(const n of i)n.style.width="max-content";n(i,n=>{for(const t of n){const n=t.boundingClientRect;t.target.maxWidth=n.width;t.target.minHeight=n.height}for(const n of i)n.style.width="",n.style.fontSize="";t()})})}function i(){if(t--,t==0){let n=performance.now();console.log("----readyToLayoutTime",n.toFixed(1));e(()=>{let t=performance.now();console.log("----inlineContainersMeasured",(t-n).toFixed(1));Initialize();let i=performance.now();console.log("----Initialize()",(i-t).toFixed(1));r.end();let u=performance.now();console.log("-----Reactions--",(u-i).toFixed(1));f();location.hash!==""&&(location.href=location.hash)})}}let r=Reaction.beginDeferred();u();let t=2;document.fonts.ready.then(()=>{console.log("-------------Fonts ready--",performance.now().toFixed(1)),i()});window.addEventListener("DOMContentLoaded",function(){console.log("------DOMContentLoaded--",performance.now().toFixed(1));i()})}();LayoutBorder.prototype.ShiftMaxOf=function(n){let t=0,i=0;for(let r of n){let n=r["Margin"+this.layoutPrpertiesNames.side[this.sideIndex]]||0,u=r["Margin"+this.layoutPrpertiesNames.side[this.oppositeSideIndex]]||0,f=r.Layer[this.layoutPrpertiesNames.dimension]||0,e=Math.max(this.bodyStop,this.marginStop+n);t=Math.max(t,e+f);i=Math.max(i,this.marginStop+u)}this.marginStop=t;this.bodyStop=i};LayoutBorder.prototype.Shift=function(n,t=undefined){let r=n["Margin"+this.layoutPrpertiesNames.side[this.sideIndex]]||0,u=n["Margin"+this.layoutPrpertiesNames.side[this.oppositeSideIndex]]||0;t==undefined&&(t=n.Layer[this.layoutPrpertiesNames.dimension]||0);let i=Math.max(this.bodyStop,this.marginStop+r);return this.marginStop=i+t,this.bodyStop=this.marginStop+u,i};LayoutBorder.prototype.ShiftByPixels=function(n){this.marginStop+=n;this.bodyStop+=n};LinearLayoutRegion.prototype.GetSize=function(){return Math.max(this.border[0].marginStop+this.border[1].bodyStop,this.border[1].marginStop+this.border[0].bodyStop)};LinearLayoutRegion.formContainer=function(n,t){let i=new LinearLayoutRegion(t),r=new LayoutPropertiesNames(t),u=[n["Padding"+r.side[0]],n["Padding"+r.side[1]],];for(let t=0;t<2;t++)if(i.border[t].bodyStop=0,i.border[t].marginStop=0,u[t]!=undefined)i.border[t].bodyStop=u[t];else{let u=n["Margin"+r.side[t]];u!==undefined&&(i.border[t].marginStop=-u)}return i};Paragraph.testFontSize=18</script><style>html{display:initial;position:initial;overscroll-behavior-x:none;overflow:hidden;overflow-x:hidden;overflow-y:hidden}.js{position:absolute;overflow:hidden;overflow-x:hidden;overflow-y:hidden;white-space:normal;touch-action:none;margin:0}.js *{scrollbar-width:none}.js *::-webkit-scrollbar{display:none}head{display:none}body{line-height:1.5;tab-size:4}body *{touch-action:inherit;display:block;overflow-x:visible;overflow-y:visible;position:absolute;margin:0;visibility:inherit;margin-block-start:0;margin-block-end:0;margin-inline-start:0;margin-inline-end:0;line-height:inherit;text-decoration-line:inherit;text-decoration-color:inherit;color:inherit;justify-content:inherit;align-content:inherit;text-align:inherit;box-sizing:border-box;word-break:keep-all;white-space:inherit}.inline-container{white-space:break-spaces}.inline-container *{position:static;display:inline;vertical-align:baseline}.inline-container a{text-decoration-line:underline}</style><style>@font-face {font-family: 'Inter';font-weight: 300;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+@font-face {font-family: 'Inter';font-weight: 500;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
+</style><script>function Initialize() {
+	let v1 = document.getElementById("v1")
+	SvgIconBlock(v1)
+	v1.Reactive =  {
+		Depth:1,
+		Visibility:(()=>{const state0={};return (e)=>Animation.SpeedLimit.bind(state0)(1,(as(e,"Hover").Value?0.5:0.2))})(),
+		BackgroundColor:new Color(0.827,0.827,0.827),
+		Exists:(e)=>(_05E886E7.ScrollY > 100),
+		X:(e)=>((e.Parent.Width - e.Width) - 10),
+		Y:(e)=>((e.Parent.Height - e.Height) - 10),
+		Width:64,
+		Height:64,
+	}
+	let v2 = new Button(v1)
+	v2.Script = function(e){_05E886E7.ScrollY = 0}
+	let v3 = new Cursor(v1)
+	v3.Reactive =  {
+		Option:"Pointer",
+	}
+	let v4 = new Hover(v1)
+	let v5 = new BorderRadius(v1)
+	v5.Reactive =  {
+		Radius:(e)=>(as(e,"Block").Width * 0.25),
+	}
+	v1.Modifiers = new Enumerable([v2,v3,v4,v5])
+	v1.NativeWidth = 24
+	v1.NativeHeight = 24
+	v1.content = document.getElementById("v6")
+	let v12 = document.getElementById("v12")
+	Image(v12)
+	v12.Reactive =  {
+		Height:32,
+		MarginLeft:20,
+		MarginRight:20,
+	}
+	v12.NativeWidth = 1834
+	v12.NativeHeight = 260
+	v12.content = document.getElementById("v13")
+	let v14 = document.getElementById("v14")
+	SvgIconBlock(v14)
+	v14.Reactive =  {
+		Visibility:(e)=>(as(e.Parent,"MenuResponsive").Dropdown.Children.Any()?1:0),
+	}
+	let v15 = new Toggle(v14)
+	let v16 = new Cursor(v14)
+	v16.Reactive =  {
+		Option:"Pointer",
+	}
+	v14.Modifiers = new Enumerable([v15,v16])
+	v14.NativeWidth = 24
+	v14.NativeHeight = 24
+	v14.content = document.getElementById("v17")
+	let v18 = document.getElementById("v18")
+	LinearLayout(v18)
+	v18.Reactive =  {
+		Depth:1,
+		Vertical:true,
+		BackgroundColor:new Color(0.9,0.9,0.9),
+		PaddingLeft:5,
+		PaddingRight:5,
+		PaddingTop:5,
+		PaddingBottom:5,
+		Visibility:(e)=>(as(e.Parent,"MenuResponsive").DropdownExpanded?1:0),
+		Y:(e)=>e.Parent.Height,
+		X:(e)=>(e.Parent.Width - e.Width),
+	}
+	let v19 = new BorderRadius(v18)
+	v19.Reactive =  {
+		Radius:5,
+	}
+	let v20 = new Button(v18)
+	v20.Script = function(e){console.log("clicked")}
+	v18.Modifiers = new Enumerable([v19,v20])
+	let v21 = document.getElementById("v21")
+	Block(v21)
+	v21.Reactive =  {
+		Depth:-1,
+		Width:500,
+		Height:500,
+		BackgroundColor:new Color(0,0,0),
+	}
+	let v24 = document.getElementById("v24")
+	Block(v24)
+	v24.Reactive =  {
+		BackgroundColor:(e)=>e.Parent.HierarchyForegroundColor,
+		Visibility:(e)=>(e.Parent.Hover?0.1:0),
+		Depth:-1,
+		Y:(e)=>Num.First(e.MarginTop,0),
+		Height:(e)=>Num.Sum(e.Parent.Height,-e.MarginTop,-e.MarginBottom),
+		X:(e)=>Num.First(e.MarginLeft,0),
+		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
+	}
+	let v22 = document.getElementById("v22")
+	Paragraph(v22)
+	v22.Reactive =  {
+		MarginLeft:0,
+		MarginRight:0,
+		MarginTop:0,
+		MarginBottom:0,
+		PaddingTop:10,
+		PaddingBottom:10,
+		PaddingLeft:20,
+		PaddingRight:20,
+	}
+	v22.inlineContainer = document.getElementById("v23")
+	v22.UnmanagedChildrenFirst = v24
+	let v27 = document.getElementById("v27")
+	Block(v27)
+	v27.Reactive =  {
+		BackgroundColor:(e)=>e.Parent.HierarchyForegroundColor,
+		Visibility:(e)=>(e.Parent.Hover?0.1:0),
+		Depth:-1,
+		Y:(e)=>Num.First(e.MarginTop,0),
+		Height:(e)=>Num.Sum(e.Parent.Height,-e.MarginTop,-e.MarginBottom),
+		X:(e)=>Num.First(e.MarginLeft,0),
+		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
+	}
+	let v25 = document.getElementById("v25")
+	Paragraph(v25)
+	v25.Reactive =  {
+		MarginLeft:0,
+		MarginRight:0,
+		MarginTop:0,
+		MarginBottom:0,
+		PaddingTop:10,
+		PaddingBottom:10,
+		PaddingLeft:20,
+		PaddingRight:20,
+	}
+	v25.inlineContainer = document.getElementById("v26")
+	v25.UnmanagedChildrenFirst = v27
+	let v30 = document.getElementById("v30")
+	Block(v30)
+	v30.Reactive =  {
+		BackgroundColor:(e)=>e.Parent.HierarchyForegroundColor,
+		Visibility:(e)=>(e.Parent.Hover?0.1:0),
+		Depth:-1,
+		Y:(e)=>Num.First(e.MarginTop,0),
+		Height:(e)=>Num.Sum(e.Parent.Height,-e.MarginTop,-e.MarginBottom),
+		X:(e)=>Num.First(e.MarginLeft,0),
+		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
+	}
+	let v28 = document.getElementById("v28")
+	Paragraph(v28)
+	v28.Reactive =  {
+		MarginLeft:0,
+		MarginRight:0,
+		MarginTop:0,
+		MarginBottom:0,
+		PaddingTop:10,
+		PaddingBottom:10,
+		PaddingLeft:20,
+		PaddingRight:20,
+	}
+	v28.inlineContainer = document.getElementById("v29")
+	v28.UnmanagedChildrenFirst = v30
+	let v33 = document.getElementById("v33")
+	Block(v33)
+	v33.Reactive =  {
+		BackgroundColor:(e)=>e.Parent.HierarchyForegroundColor,
+		Visibility:(e)=>(e.Parent.Hover?0.1:0),
+		Depth:-1,
+		Y:(e)=>Num.First(e.MarginTop,0),
+		Height:(e)=>Num.Sum(e.Parent.Height,-e.MarginTop,-e.MarginBottom),
+		X:(e)=>Num.First(e.MarginLeft,0),
+		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
+	}
+	let v31 = document.getElementById("v31")
+	Paragraph(v31)
+	v31.Reactive =  {
+		MarginLeft:0,
+		MarginRight:0,
+		MarginTop:0,
+		MarginBottom:0,
+		PaddingTop:10,
+		PaddingBottom:10,
+		PaddingLeft:20,
+		PaddingRight:20,
+	}
+	v31.inlineContainer = document.getElementById("v32")
+	v31.UnmanagedChildrenFirst = v33
+	let v36 = document.getElementById("v36")
+	Block(v36)
+	v36.Reactive =  {
+		BackgroundColor:(e)=>e.Parent.HierarchyForegroundColor,
+		Visibility:(e)=>(e.Parent.Hover?0.1:0),
+		Depth:-1,
+		Y:(e)=>Num.First(e.MarginTop,0),
+		Height:(e)=>Num.Sum(e.Parent.Height,-e.MarginTop,-e.MarginBottom),
+		X:(e)=>Num.First(e.MarginLeft,0),
+		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
+	}
+	let v34 = document.getElementById("v34")
+	Paragraph(v34)
+	v34.Reactive =  {
+		MarginLeft:0,
+		MarginRight:0,
+		MarginTop:0,
+		MarginBottom:0,
+		PaddingTop:10,
+		PaddingBottom:10,
+		PaddingLeft:20,
+		PaddingRight:20,
+	}
+	v34.inlineContainer = document.getElementById("v35")
+	v34.UnmanagedChildrenFirst = v36
+	let v38 = document.getElementById("v38")
+	Paragraph(v38)
+	let v40 = document.getElementById("v40")
+	AbstractInline(v40)
+	v40.Parent = v38
+	v38.inlineContainer = document.getElementById("v39")
+	let v41 = document.getElementById("v41")
+	Paragraph(v41)
+	let v43 = document.getElementById("v43")
+	AbstractInline(v43)
+	v43.Parent = v41
+	v41.inlineContainer = document.getElementById("v42")
+	let v37 = document.getElementById("v37")
+	LinearLayout(v37)
+	v37.Reactive =  {
+		PrimaryGravity:0,
+		Vertical:false,
+	}
+	v37.ChildrenFirst = v38
+	v38.NextSibling = v41
+	let v11 = document.getElementById("v11")
+	MenuResponsive(v11)
+	v11.Reactive =  {
+		Depth:1,
+		MarginLeft:20,
+		MarginRight:20,
+		MarginTop:20,
+		MarginBottom:20,
+	}
+	v11.Logo = v12
+	v11.Button = v14
+	v11.Dropdown = v18
+	v11.Glass = v21
+	v11.ChildrenFirst = v22
+	v22.NextSibling = v25
+	v25.NextSibling = v28
+	v28.NextSibling = v31
+	v31.NextSibling = v34
+	v34.NextSibling = v37
+	let v46 = document.getElementById("v46")
+	Paragraph(v46)
+	v46.Reactive =  {
+		FontSize:34,
+	}
+	v46.inlineContainer = document.getElementById("v47")
+	let v48 = document.getElementById("v48")
+	Paragraph(v48)
+	v48.inlineContainer = document.getElementById("v49")
+	let v44 = document.getElementById("v44")
+	LinearLayout(v44)
+	v44.Reactive =  {
+		BackgroundColor:(e)=>(as(e,"Hover").Value?new Color(0.95,0.95,0.95):new Color(1,1,1)),
+	}
+	let v45 = new Hover(v44)
+	v44.Modifiers = new Enumerable([v45])
+	v44.ChildrenFirst = v46
+	v46.NextSibling = v48
+	let v52 = document.getElementById("v52")
+	Paragraph(v52)
+	v52.Reactive =  {
+		FontSize:34,
+	}
+	v52.inlineContainer = document.getElementById("v53")
+	let v54 = document.getElementById("v54")
+	Paragraph(v54)
+	v54.inlineContainer = document.getElementById("v55")
+	let v50 = document.getElementById("v50")
+	LinearLayout(v50)
+	v50.Reactive =  {
+		BackgroundColor:(e)=>(as(e,"Hover").Value?new Color(0.95,0.95,0.95):new Color(1,1,1)),
+	}
+	let v51 = new Hover(v50)
+	v50.Modifiers = new Enumerable([v51])
+	v50.ChildrenFirst = v52
+	v52.NextSibling = v54
+	let v58 = document.getElementById("v58")
+	Paragraph(v58)
+	v58.Reactive =  {
+		FontSize:34,
+	}
+	v58.inlineContainer = document.getElementById("v59")
+	let v60 = document.getElementById("v60")
+	Paragraph(v60)
+	v60.inlineContainer = document.getElementById("v61")
+	let v56 = document.getElementById("v56")
+	LinearLayout(v56)
+	v56.Reactive =  {
+		BackgroundColor:(e)=>(as(e,"Hover").Value?new Color(0.95,0.95,0.95):new Color(1,1,1)),
+	}
+	let v57 = new Hover(v56)
+	v56.Modifiers = new Enumerable([v57])
+	v56.ChildrenFirst = v58
+	v58.NextSibling = v60
+	let v64 = document.getElementById("v64")
+	Paragraph(v64)
+	v64.Reactive =  {
+		FontSize:34,
+	}
+	v64.inlineContainer = document.getElementById("v65")
+	let v66 = document.getElementById("v66")
+	Paragraph(v66)
+	v66.inlineContainer = document.getElementById("v67")
+	let v62 = document.getElementById("v62")
+	LinearLayout(v62)
+	v62.Reactive =  {
+		BackgroundColor:(e)=>(as(e,"Hover").Value?new Color(0.95,0.95,0.95):new Color(1,1,1)),
+	}
+	let v63 = new Hover(v62)
+	v62.Modifiers = new Enumerable([v63])
+	v62.ChildrenFirst = v64
+	v64.NextSibling = v66
+	let v70 = document.getElementById("v70")
+	Paragraph(v70)
+	v70.Reactive =  {
+		FontSize:34,
+	}
+	v70.inlineContainer = document.getElementById("v71")
+	let v72 = document.getElementById("v72")
+	Paragraph(v72)
+	v72.inlineContainer = document.getElementById("v73")
+	let v68 = document.getElementById("v68")
+	LinearLayout(v68)
+	v68.Reactive =  {
+		BackgroundColor:(e)=>(as(e,"Hover").Value?new Color(0.95,0.95,0.95):new Color(1,1,1)),
+	}
+	let v69 = new Hover(v68)
+	v68.Modifiers = new Enumerable([v69])
+	v68.ChildrenFirst = v70
+	v70.NextSibling = v72
+	let v76 = document.getElementById("v76")
+	Paragraph(v76)
+	v76.Reactive =  {
+		FontSize:34,
+	}
+	v76.inlineContainer = document.getElementById("v77")
+	let v78 = document.getElementById("v78")
+	Paragraph(v78)
+	v78.inlineContainer = document.getElementById("v79")
+	let v74 = document.getElementById("v74")
+	LinearLayout(v74)
+	v74.Reactive =  {
+		BackgroundColor:(e)=>(as(e,"Hover").Value?new Color(0.95,0.95,0.95):new Color(1,1,1)),
+	}
+	let v75 = new Hover(v74)
+	v74.Modifiers = new Enumerable([v75])
+	v74.ChildrenFirst = v76
+	v76.NextSibling = v78
+	let v10 = document.getElementById("v10")
+	LinearLayout(v10)
+	v10.Reactive =  {
+		PaddingLeft:(e)=>(Num.Max((e.Width - 1080),0) / 2),
+		PaddingRight:(e)=>(Num.Max((e.Width - 1080),0) / 2),
+	}
+	v10.ChildrenFirst = v11
+	v11.NextSibling = v44
+	v44.NextSibling = v50
+	v50.NextSibling = v56
+	v56.NextSibling = v62
+	v62.NextSibling = v68
+	v68.NextSibling = v74
+	let v81 = document.getElementById("v81")
+	Paragraph(v81)
+	let v83 = document.getElementById("v83")
+	AbstractInline(v83)
+	v83.Parent = v81
+	v81.inlineContainer = document.getElementById("v82")
+	let v80 = document.getElementById("v80")
+	LinearLayout(v80)
+	v80.Reactive =  {
+		FontSize:14,
+		PaddingLeft:(e)=>(Num.Max((e.Parent.Width - 1080),0) / 2),
+		PaddingRight:(e)=>(Num.Max((e.Parent.Width - 1080),0) / 2),
+		BackgroundColor:new Color(0.9,0.9,0.9),
+	}
+	v80.ChildrenFirst = v81
+	let v9 = document.getElementById("v9")
+	LinearLayout(v9)
+	v9.Reactive =  {
+		Width:(e)=>e.Parent.Width,
+		ItemGrow:0,
+		GapGrow:1,
+		Gap:50,
+	}
+	v9.ChildrenFirst = v10
+	v10.NextSibling = v80
+	let v7 = document.getElementById("v7")
+	let _05E886E7 = v7
+	ScrollLayout(v7)
+	v7.Reactive =  {
+		Width:(e)=>e.Parent.Width,
+		Height:(e)=>e.Parent.Height,
+		ScrollY:(e)=>_7F5BA90B.StoredValue,
+	}
+	let v8 = new SessionStorage(v7)
+	let _7F5BA90B = v8
+	v8.Reactive =  {
+		ValueToStore:(e)=>_05E886E7.ScrollY,
+	}
+	v8.name = "MainScroll_Components"
+	v8.StoredValue = Number(sessionStorage.getItem("MainScroll_Components") || 0) || 0
+	v7.Modifiers = new Enumerable([v8])
+	v7.Child = v9
+	let v0 = document.getElementById("v0")
+	Page(v0)
+	v0.Reactive =  {
+		FontSize:(e)=>Num.PiecewiseLinearInterpolation(window.DevicePixelRatio,[1,18],[2,16]),
+	}
+	v0.UnmanagedChildrenFirst = v1
+	v1.NextSibling = v7
+	v0.extras = document.getElementById("extras")
+}
+</script></head><body id="v0" style="font-family:Inter;font-weight:300;"><svg-icon-block id="v1"><svg xmlns="http://www.w3.org/2000/svg" id="v6" viewBox="0 0 24 24"><path d="M7.41,18.41L6,17L12,11L18,17L16.59,18.41L12,13.83L7.41,18.41M7.41,12.41L6,11L12,5L18,11L16.59,12.41L12,7.83L7.41,12.41Z" /></svg></svg-icon-block><scroll-layout id="v7"><linear-layout id="v9"><linear-layout id="v10"><menu-responsive id="v11"><a id="v12" href="../ru" target="_self"><content id="v13"><img width="100%" height="100%" src="data:image/svg+xml;utf8,<?xml version='1.0' encoding='utf-16'?><!-- Generator: Adobe Illustrator 26.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  --><svg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 1834 260' style='enable-background:new 0 0 1834 260;' xml:space='preserve'>
+<g>
+	<path d='M0.5,257h184.8h110.9l0,0L148.3,0.9L0.5,257z M14.4,249L148.3,17l87.8,152l-46.2,80H14.4z' />
+	<path d='M488.8,188.9c-7-6.3-18.2-11.3-33.5-15.1l-17.5-4.5c-12.8-3.2-22.1-7.2-28-12.1c-5.9-4.9-8.8-11.2-8.8-19   c0-9.8,4.1-17.9,12.3-24.3c8.2-6.4,18.2-9.6,30.2-9.6c12.3,0,22.7,3.1,31,9.2c8.3,6.1,12.8,13.9,13.3,23.4h8.6   c-0.5-11.6-5.7-21.3-15.7-29c-9.9-7.7-22.3-11.5-37-11.5c-14.4,0-26.6,4-36.6,12c-9.9,8-14.9,18-14.9,30.2c0,9.8,3.4,17.8,10.2,24   c6.8,6.2,17.5,11.2,32.1,14.9l18.6,4.6c13.2,3.3,22.8,7.6,28.6,12.6c5.9,5.1,8.8,11.7,8.8,19.9c0,10.3-4.2,18.8-12.7,25.5   c-8.5,6.7-19.3,10.1-32.6,10.1c-13.7,0-25-3.4-34.1-10.1c-9.1-6.8-13.9-15.5-14.6-26.1h-8.6c0.7,13.1,6.2,23.7,16.7,31.9   s23.8,12.3,39.8,12.3c16.3,0,29.6-4.1,39.5-12.3c10.1-8.2,15.1-18.8,15.1-31.9C499.3,203.6,495.8,195.2,488.8,188.9z' />
+	<polygon points='636,99 517,99 517,107 572,107 572,257 581,257 581,107 636,107  ' />
+	<path d='M689.5,99l-60.2,158h9.1l19.7-53h71.5l19.8,53h9L698.2,99C698.2,99,689.5,99,689.5,99z M661.2,196l32.3-86h0.5l32.4,86   H661.2z' />
+	<polygon points='752,107 807,107 807,257 816,257 816,107 871,107 871,99 752,99  ' />
+	<rect x='898' y='99' width='9' height='158' />
+	<path d='M1008.8,104.1c13.7,0,25.5,4.3,35.7,12.9c10.2,8.6,16.1,19.2,17.8,32h8.7c-1.7-15-8.5-27.7-20.3-37.8   c-11.9-10.2-25.8-15.1-42-15.1c-21.3,0-38.2,7.3-50.8,21.8C945.3,132.5,939,152,939,176.7c0,25.1,6.3,45.1,18.9,60.1   c12.7,14.9,29.5,22.3,50.7,22.3c16.7,0,30.9-4.6,42.3-13.9c11.5-9.2,18-21.3,19.9-36.3h-8.7c-1.7,12.6-7.5,22.7-17.5,30.5   c-10,7.7-22,11.6-36.1,11.6c-18.5,0-33.3-6.7-44.3-20.1c-11-13.5-16.5-31.5-16.5-54.1c0-22.2,5.5-39.9,16.4-52.9   C975.4,110.6,990.1,104.1,1008.8,104.1z' />
+	<path d='M1252.3,188.9c-7-6.3-18.2-11.3-33.5-15.1l-17.5-4.5c-12.8-3.2-22.1-7.2-28-12.1c-5.9-4.9-8.8-11.2-8.8-19   c0-9.8,4.1-17.9,12.3-24.3s18.2-9.6,30.2-9.6c12.3,0,22.7,3.1,31,9.2c8.3,6.1,12.8,13.9,13.3,23.4h8.6c-0.5-11.6-5.7-21.3-15.7-29   c-9.9-7.7-22.3-11.5-37-11.5c-14.4,0-26.6,4-36.6,12c-9.9,8-14.9,18-14.9,30.2c0,9.8,3.4,17.8,10.2,24s17.5,11.2,32.1,14.9   l18.6,4.6c13.2,3.3,22.8,7.6,28.6,12.6c5.9,5.1,8.8,11.7,8.8,19.9c0,10.3-4.2,18.8-12.7,25.5c-8.5,6.7-19.3,10.1-32.6,10.1   c-13.7,0-25-3.4-34.1-10.1c-9.1-6.8-13.9-15.5-14.6-26.1h-8.6c0.7,13.1,6.2,23.7,16.7,31.9c10.5,8.2,23.8,12.3,39.8,12.3   c16.3,0,29.6-4.1,39.5-12.3c10.1-8.2,15.1-18.8,15.1-31.9C1262.8,203.6,1259.3,195.2,1252.3,188.9z' />
+	<polygon points='1403,172 1303,172 1303,99 1295,99 1295,257 1304,257 1304,180 1403,180 1403,257 1412,257 1412,99 1403,99  ' />
+	<path d='M1499.4,99l-60.2,158h9.1l19.7-53h71.5l19.8,53h9l-60.1-158C1508.2,99,1499.4,99,1499.4,99z M1471.1,196l32.3-86h0.5   l32.4,86H1471.1z' />
+	<path d='M1687.9,172.6c6.5-7.8,9.7-17.3,9.7-28.7c0-13.9-4.5-24.9-13.6-33s-21.4-12.1-37-11.9h-51v157h9v-67h41.9   c2.2,0,4-0.1,5.5-0.3l39.3,67.3h10l-40.6-68.4C1672.5,185.2,1681.5,180.2,1687.9,172.6z M1646.3,182H1604v-75h41.9   c13.3,0,23.8,3.3,31.4,9.9s11.4,15.8,11.4,27.6c0,11.6-3.8,20.8-11.3,27.5C1670,178.7,1659.7,182,1646.3,182z' />
+	<path d='M1819.4,111.8c-9.2-8.6-21.5-12.8-36.7-12.8H1732v158h9v-64h41.6c15.4,0,27.6-4.3,36.8-12.8c9.2-8.5,13.8-19.9,13.8-34.2   C1833.2,131.8,1828.7,120.3,1819.4,111.8z M1812.6,174.6c-7.7,7-18.2,10.4-31.5,10.4H1741v-78h40.1c13.3,0,23.8,3.5,31.5,10.4   c7.7,7,11.6,16.5,11.6,28.6S1820.3,167.6,1812.6,174.6z' />
+</g>
+</svg>"></content></a><svg-icon-block id="v14"><svg xmlns="http://www.w3.org/2000/svg" id="v17" viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" /></svg></svg-icon-block><linear-layout id="v18"></linear-layout><block id="v21"></block><a id="v22" href="ru" target="_self"><p id="v23" class="inline-container">Components
+</p><block id="v24"></block></a><a id="v25" href="../Modifiers/ru" target="_self"><p id="v26" class="inline-container">Modifiers
+</p><block id="v27"></block></a><a id="v28" href="VideoPlayer/ru" target="_self"><p id="v29" class="inline-container">Video Player
+</p><block id="v30"></block></a><a id="v31" href="ParagraphComponent/ru" target="_self"><p id="v32" class="inline-container">Paragraph Component
+</p><block id="v33"></block></a><a id="v34" href="../Customization/HowToCreateNewComponent/ru" target="_self"><p id="v35" class="inline-container">Как создать новый компонент
+</p><block id="v36"></block></a><linear-layout id="v37"><paragraph id="v38"><p id="v39" class="inline-container"><a id="v40" href="en" target="_self">En</a>
+</p></paragraph><paragraph id="v41"><p id="v42" class="inline-container"><a id="v43" href="ru" target="_self">Ru</a>
+</p></paragraph></linear-layout></menu-responsive><a id="v44" href="CodeComponent/ru" target="_self"><paragraph id="v46" style="font-weight:500;"><p id="v47" class="inline-container">Code Component
+</p></paragraph><paragraph id="v48"><p id="v49" class="inline-container">CodeBlock and CodeInline component.
+</p></paragraph></a><a id="v50" href="ImageComponent/ru" target="_self"><paragraph id="v52" style="font-weight:500;"><p id="v53" class="inline-container">Image Component
+</p></paragraph><paragraph id="v54"><p id="v55" class="inline-container">StaticSharp Image component.
+</p></paragraph></a><a id="v56" href="MaterialDesignIconsComponent/ru" target="_self"><paragraph id="v58" style="font-weight:500;"><p id="v59" class="inline-container">Material Design Icons Component
+</p></paragraph><paragraph id="v60"><p id="v61" class="inline-container">Material Design icon component. Has two implementations as Block and as Inline.
+</p></paragraph></a><a id="v62" href="ParagraphComponent/ru" target="_self"><paragraph id="v64" style="font-weight:500;"><p id="v65" class="inline-container">Paragraph Component
+</p></paragraph><paragraph id="v66"><p id="v67" class="inline-container">Paragraph is a Block of text and other Inlines
+</p></paragraph></a><a id="v68" href="ScrollLayoutComponent/ru" target="_self"><paragraph id="v70" style="font-weight:500;"><p id="v71" class="inline-container">Scroll Layout
+</p></paragraph><paragraph id="v72"><p id="v73" class="inline-container">Контейнер вертикальным и горизонтальным скроллбарами.
+</p></paragraph></a><a id="v74" href="VideoPlayer/ru" target="_self"><paragraph id="v76" style="font-weight:500;"><p id="v77" class="inline-container">Video Player
+</p></paragraph><paragraph id="v78"><p id="v79" class="inline-container">StaticSharp VideoPlayer component.
+</p></paragraph></a></linear-layout><linear-layout id="v80"><paragraph id="v81"><p id="v82" class="inline-container">This website is created using <a id="v83" href="../ru" target="_self">StaticSharp</a>
+</p></paragraph></linear-layout></linear-layout></scroll-layout><extras id="extras"></extras></body></html>

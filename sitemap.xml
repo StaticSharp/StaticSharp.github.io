@@ -45,4 +45,14 @@
 		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Customization/HowToCreateNewComponent/en"/>
 		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Customization/HowToCreateNewComponent/ru"/>
 	</url>
+	<url>
+	<loc>https://staticsharp.github.io/Modifiers/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Modifiers/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Modifiers/ru"/>
+	</url>
+	<url>
+	<loc>https://staticsharp.github.io/SimplePage/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/SimplePage/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/SimplePage/ru"/>
+	</url>
 </urlset>
