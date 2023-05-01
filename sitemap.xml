@@ -1,49 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 	<url>
-	<loc>https://staticsharp.github.io/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/ru"/>
+	<loc>https://staticsharp.com/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ru"/>
+	<loc>https://staticsharp.com/Components/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/CodeComponent/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/CodeComponent/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/CodeComponent/ru"/>
+	<loc>https://staticsharp.com/Components/CodeComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/CodeComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/CodeComponent/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/ImageComponent/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/ImageComponent/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ImageComponent/ru"/>
+	<loc>https://staticsharp.com/Components/ImageComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/ImageComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/ImageComponent/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/MaterialDesignIconsComponent/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/MaterialDesignIconsComponent/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/MaterialDesignIconsComponent/ru"/>
+	<loc>https://staticsharp.com/Components/MaterialDesignIconsComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/MaterialDesignIconsComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/MaterialDesignIconsComponent/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/ParagraphComponent/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/ParagraphComponent/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ParagraphComponent/ru"/>
+	<loc>https://staticsharp.com/Components/ParagraphComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/ParagraphComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/ParagraphComponent/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/ScrollLayoutComponent/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/ScrollLayoutComponent/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/ScrollLayoutComponent/ru"/>
+	<loc>https://staticsharp.com/Components/ScrollLayoutComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/ScrollLayoutComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/ScrollLayoutComponent/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Components/VideoPlayer/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Components/VideoPlayer/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Components/VideoPlayer/ru"/>
+	<loc>https://staticsharp.com/Components/VideoPlayer/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Components/VideoPlayer/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Components/VideoPlayer/ru"/>
 	</url>
 	<url>
-	<loc>https://staticsharp.github.io/Customization/HowToCreateNewComponent/en</loc>
-		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.github.io/Customization/HowToCreateNewComponent/en"/>
-		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.github.io/Customization/HowToCreateNewComponent/ru"/>
+	<loc>https://staticsharp.com/Customization/HowToCreateNewComponent/en</loc>
+		<xhtml:link rel="alternate" hreflang="en" href="https://staticsharp.com/Customization/HowToCreateNewComponent/en"/>
+		<xhtml:link rel="alternate" hreflang="ru" href="https://staticsharp.com/Customization/HowToCreateNewComponent/ru"/>
 	</url>
 	<url>
 	<loc>https://staticsharp.github.io/Modifiers/en</loc>
