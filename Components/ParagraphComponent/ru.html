@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0"><title>Paragraph Component</title><meta property="og:site_name" content="StaticSharp"><meta property="og:title" content="Paragraph Component"><meta property="twitter:title" content="Paragraph Component"><meta property="twitter:card" content="summary_large_image"><meta property="og:url" content="https://staticsharp.github.io/Components/ParagraphComponent/ru"><meta property="twitter:url" content="https://staticsharp.github.io/Components/ParagraphComponent/ru"><meta property="description" content="Paragraph is a Block of text and other Inlines"><meta property="og:description" content="Paragraph is a Block of text and other Inlines"><meta property="twitter:description" content="Paragraph is a Block of text and other Inlines"><meta property="og:type" content="website"><link rel="icon" type="image/svg+xml" href="../../Assets/50ADFCBE1D494D00887F429A64139198.svg"><script>function ToCssSize(n){return n!=undefined?n.toFixed(4)+"px":""}function ToCssValue(n){return n!=undefined?n:""}function DepthToStyle(n){return new Reaction(()=>{n.style.zIndex=n.Depth})}function XToStyle(n){return new Reaction(()=>{n.style.left=ToCssSize(n.X)})}function YToStyle(n){return new Reaction(()=>{n.style.top=ToCssSize(n.Y)})}function WidthToStyle(n){return new Reaction(()=>{n.style.width=ToCssSize(n.Width)})}function HeightToStyle(n){return new Reaction(()=>{n.style.height=ToCssSize(n.Height)})}function Enumerable(n){if(typeof n=="function"){this[Symbol.iterator]=n;return}if(typeof n[Symbol.iterator]=="function"){this[Symbol.iterator]=n[Symbol.iterator].bind(n);return}throw new Error("Invalid source type");}function as(n,t){return n==undefined?undefined:typeof n.as=="function"?n.as(t):undefined}function convert(n,t){var i=as(n,t);if(i==undefined){let i=`Failed to convert element to type ${t}`;console.error(i,n);throw new Error(i);}return i}function _deleteScript(){let n=document.currentScript,t=n.parentElement;return t.removeChild(n),t}function getCurrentParent(){return parentStack.length>0?parentStack[parentStack.length-1]:undefined}function SetCurrentSocket(n){var i=_deleteScript(),t=getCurrentParent();currentSocket=t.Reactive[n]}function AssignToParentProperty(n){var t=_deleteScript();let i=getCurrentParent();i[n]=t}function AssignPreviousTagToParentProperty(n){var t=_deleteScript();let i=t.lastChild,r=getCurrentParent();r[n]=i}function Constructor(){var n=_deleteScript();for(let t of arguments)t(n);return currentSocket&&currentSocket.setValue(n),currentSocket=n.Reactive.FirstChild,parentStack.push(n),n}function Pop(){let n=_deleteScript();currentSocket=n.Reactive.NextSibling;parentStack.pop();typeof n.AfterChildren=="function"&&n.AfterChildren()}function CamelToKebab(n){return n.replace(/[A-Z]+(?![a-z])|[A-Z]/g,(n,t)=>(t?"-":"")+n.toLowerCase())}function CreateSocket(n,t,i){let r=new Property;return r.attach(n,t),r.onAssign=function(n,t){if(n!=t){if(n){n.place=undefined;n.Parent=undefined;n.Layer();let t=n.NextSibling;while(t)t.Parent=undefined,t.Layer(),t=t.NextSibling}if(t&&(t.place&&t.place.setValue(undefined),t.place=r,t.Parent=i,t.Layer(),i!=undefined)){let n=t.NextSibling;while(n)n.Parent=i,n.Layer(),n=n.NextSibling}}},r}function CreateCollectionSocket(n,t,i){let u=t+"First",f=CreateSocket(n,u,i);var r=new DomLinkedList(f);n[t]=r;n["Existing"+t]=r.Where(n=>n.Exists)}function Create(n,...t){let r=t[0],u=CamelToKebab(r.name),i=document.createElement(u);n.appendChild(i);i.Parent=n;for(let n of t)n(i);return i}function ReactionBase(n){let t=this;t.triggeringProperties=new Set;t.func=n;t.addTriggeringProperty=function(n){t.triggeringProperties.add(n);n.dependentReactions.add(t)};t.unsubscribeFromTriggeringProperty=function(n){return n.dependentReactions.delete(t)?(t.triggeringProperties.delete(n),!0):!1};t.unsubscribeFromTriggeringProperties=function(){if(t.triggeringProperties.size!=0){for(let n of t.triggeringProperties)n.dependentReactions.delete(t);t.triggeringProperties.clear()}};t.execute=function(n){let i=Reaction.current;Reaction.current=t;t.unsubscribeFromTriggeringProperties();try{return t.func(n)}finally{Reaction.current=i}};t.dirtImmune=!1}function Reaction(n){let t=this;if(ReactionBase.call(t,n),t.makeDirty=function(){t.dirtImmune||Reaction.deferred.add(t)},Reaction.deferred)Reaction.deferred.add(t);else{let n=Reaction.beginDeferred();try{t.execute()}catch(i){console.warn(i)}n.end()}}function Binding(n,t){let i=this;ReactionBase.call(i,n);i.dirty=!0;i.makeDirty=function(){i.dirty||(i.dirty=!0,t())}}function Property(){let n=this;n.name="";n.object=null;n.dependentReactions=new Set;n.binding=undefined;n.makeDirty=function(){n.binding.makeDirty()};n.onBindingBecameDirty=function(){n.makeDependentReactionsDirty()};n.makeDependentReactionsDirty=function(){if(n.dependentReactions.size!=0){var t=Reaction.beginDeferred();n.dependentReactions.forEach(n=>n.makeDirty());t.end()}};n.executionInProgress=!1;n.replaceValue=function(n){let t=Reaction.current;Reaction.current=undefined;let i=n(this.getValue());this.setValue(i);Reaction.current=t};n.getValue=function(){if(Reaction.current&&Reaction.current.addTriggeringProperty(n),n.binding&&n.binding.dirty){if(n.executionInProgress)return n.reactionsWhoReceivedOldValue==undefined&&(n.reactionsWhoReceivedOldValue=new Set),n.reactionsWhoReceivedOldValue.add(Reaction.current),n.value;try{var t=n.value;try{n.executionInProgress=!0;n.value=n.binding.execute(n.object)}finally{if(n.executionInProgress=!1,n.binding.dirty=!1,n.reactionsWhoReceivedOldValue){if(n.value!==t){let t=Reaction.beginDeferred();n.reactionsWhoReceivedOldValue.forEach(n=>n.makeDirty());t.end()}n.reactionsWhoReceivedOldValue=undefined}}}catch(i){console.error(i)}}return n.value};n.onAssign=undefined;n.setValue=function(t){var i;if(typeof t=="function"){if(t.isBindingConstructor&&(t=t(n),console.log("isBindingConstructor",t,this.object)),n.binding){if(n.binding.func===t)return;n.binding.unsubscribeFromTriggeringProperties()}n.binding=new Binding(t,n.onBindingBecameDirty)}else{if(n.binding&&(n.binding.unsubscribeFromTriggeringProperties(),n.binding=undefined),n.onAssign){i=Reaction.beginDeferred();n.onAssign(n.value,t);i.end()}if(n.value===t)return;n.value=t}i=Reaction.beginDeferred();n.makeDependentReactionsDirty();i.end()};n.attach=function(t,i){n.name=i;n.object=t;let r={get:function(){return n.getValue()},set:function(t){n.setValue(t)}};return Object.defineProperty(t,i,r),t["__"+i]=n,n}}function OnChanged(n,t){let i=undefined;return new Reaction(()=>{let r=n();if(r!=i){let n=Reaction.beginNonReactive();t(i,r);n.end();i=r}})}function OnTruthify(n,t){let i=undefined;return new Reaction(()=>{let r=n();if(r===!0&&!i==!0){let n=Reaction.beginNonReactive();t();n.end()}i=r})}function Entity(n){n.isEntity=!0;n.as=function(t){return n.is(t)?n:undefined};n.is=function(t){return n["is"+t]!=undefined}}function CreateLayer(n){function u(n){let i=n.binding!=undefined,r=i?n.binding.func:n.value,t=new Property;return t.name="Backup_"+n.name,t.object=n.object,t.setValue(r),t}function i(n,i){let r=t.get(i);if(r==undefined){if(!Property.exists(n,i))throw new Error(`Element does not have property "${i}"`);r=u(n.Reactive[i]);t.set(i,r)}return r}let t=new Map;let r=function(){let i=Reaction.beginDeferred();t.forEach(function(t,i){let r=t.binding?t.binding.func:t.value;n[i]=r});t.clear();i.end()};r.element=n;let f=new Proxy(r,{get(n,t){var r=i(n.element,t);return r.getValue()},set(n,t,r){var u=i(n.element,t);return n.element[t]=r,!0}});n.Layer=f}function ClearLayer(n){if(n.Layer&&n.Layer.backupProperties){let t=Reaction.beginDeferred();n.Layer.backupProperties.forEach(function(t,i){let r=t.binding?t.binding.func:t.value;n[i]=r});n.Layer.backupProperties.clear();t.end()}}function GetParentElementByPredicate(n,t){for(var i=n;i!=undefined;){if(t(i))return i;i=i.parentElement}return undefined}function SyncChildren(n,t){let i=[...n.children];t=[...t];for(let r=0;r<i.length;r++){let u=i[r];t.includes(u)||n.removeChild(u)}for(let i=0;i<t.length;i++){let r=t[i];n.children[i]!=r&&n.insertBefore(r,n.children[i])}}function Hierarchical(n){Entity(n);n.isHierarchical=!0;CreateCollectionSocket(n,"UnmanagedChildren",n);CreateSocket(n,"NextSibling",()=>n.Parent);CreateLayer(n);n.Reactive={Exists:!0,Root:()=>n.Parent.Root,Parent:undefined}}function DomLinkedList(n){this.firstChildProperty=n;Enumerable.call(this,function*(){for(var t=n.getValue();t!=undefined;)yield t,t=t.NextSibling})}function Color(){let n=[...arguments],t=this;if(t.r=0,t.g=0,t.b=0,t.a=undefined,n.length!=0){if(n.length==1){let u=n[0];if(typeof u=="number"){t.b=(u&255)/255;t.g=((u&65280)>>>8)/255;t.r=((u&16711680)>>>16)/255;t.a=((u&4278190080)>>>24)/255;return}if(typeof u=="string"&&u.substr(0,1)=="#"){var i=(u.length-1)/3,r=[17,1,.062272][i-1]/255;t.r=parseInt(u.substr(1,i),16)*r;t.g=parseInt(u.substr(1+i,i),16)*r;t.b=parseInt(u.substr(1+2*i,i),16)*r;return}console.warn("Color: Invalid arguments",u)}if(n.length>=3&n.length<=4){if(n.slice(0,3).some(n=>typeof n!="number")){console.warn("Color: Invalid arguments types",n);return}if(t.r=n[0],t.g=n[1],t.b=n[2],n[3]!=undefined){if(typeof n[3]!="number"){console.warn("Color: Invalid arguments types",n);return}t.a=n[3]}return}console.warn("Color: Invalid arguments",n)}}function BaseModifier(n){Hierarchical(n);n.isModifier=!0;let t=n.as;n.as=function(i){let r=t(i);if(r!=undefined)return r;if(n.Modifiers!=undefined){let t=n.as;n.as=()=>undefined;r=n.Modifiers.First(n=>n.is(i),()=>undefined);n.as=t}return r};n.Reactive={Hover:!1,Selectable:undefined,BackgroundColor:undefined,HierarchyBackgroundColor:()=>n.BackgroundColor||n.Parent.HierarchyBackgroundColor,ForegroundColor:()=>n.BackgroundColor!=undefined?n.BackgroundColor.ContrastColor():undefined,HierarchyForegroundColor:()=>{let t=n.ForegroundColor;if(t)return t;let i=n.Parent;return i&&(t=i.HierarchyForegroundColor,t)?t:new Color(0)},TextDecorationColor:()=>n.ForegroundColor!=undefined?n.ForegroundColor:undefined,Modifiers:Enumerable.Empty(),FontSize:undefined,HierarchyFontSize:()=>n.FontSize||n.Parent.HierarchyFontSize,Radius:undefined,RadiusTopLeft:()=>n.Radius,RadiusTopRight:()=>n.Radius,RadiusBottomLeft:()=>n.Radius,RadiusBottomRight:()=>n.Radius,Visibility:1};new Reaction(()=>{let t=n.Visibility;t==0?(n.style.visibility="hidden",n.style.opacity=""):t==1?(n.style.visibility="",n.style.opacity=""):(n.style.opacity=t,n.style.visibility="")});new Reaction(()=>{n.style.borderTopLeftRadius=ToCssSize(n.RadiusTopLeft),n.style.borderTopRightRadius=ToCssSize(n.RadiusTopRight),n.style.borderBottomLeftRadius=ToCssSize(n.RadiusBottomLeft),n.style.borderBottomRightRadius=ToCssSize(n.RadiusBottomRight)});new Reaction(()=>{let t=n.Selectable;n.style.userSelect=t!=undefined?n.Selectable?"text":"none":""});new Reaction(()=>{n.style.backgroundColor=ToCssValue(n.BackgroundColor)});new Reaction(()=>{n.style.color=ToCssValue(n.ForegroundColor)});new Reaction(()=>{n.style.textDecorationColor=ToCssValue(n.TextDecorationColor)})}function Page(n){function i(){return t.clientWidth}function r(){return t.clientHeight}function e(n){let t=window.matchMedia(`screen and (resolution: ${window.devicePixelRatio}dppx)`);t.addEventListener("change",()=>{n(),e(n)},{once:!0})}n.classList.add("js");n.isRoot=!0;Block(n);var t=document.body.parentNode;let u=0;window.Reactive={Root:n,AnimationFrame:()=>(u++,window.requestAnimationFrame(()=>{window.Reactive.AnimationFrame.makeDirty()}),u),UserInteracted:!1,DevicePixelRatio:window.devicePixelRatio,Touch:!1};let f=window.matchMedia("(pointer: coarse)");window.Touch=f.matches;f.onchange=n=>{window.Touch=n.matches};e(()=>window.DevicePixelRatio=window.devicePixelRatio);n.Reactive={Root:n,FontSize:16,HierarchyFontSize:()=>n.FontSize,BackgroundColor:new Color("#fff"),HierarchyBackgroundColor:()=>n.BackgroundColor,HierarchyForegroundColor:()=>n.ForegroundColor};let o=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){yield*o;n.svgDefs&&(yield n.svgDefs);n.extras&&(yield n.extras)});new Reaction(()=>{n.Width=i(),n.Height=r()});window.onmousedown=()=>{window.UserInteracted=!0};window.onresize=function(){let t=Reaction.beginDeferred();n.Width=i();n.Height=r();t.end()}}function CalcOffset(n,t,i){let u="Padding"+i,r="Margin"+i;return n[u]!=undefined?Math.max(n[u],t[r]||0):n[r]==undefined?t[r]||0:t[r]==undefined?0:Math.max(t[r]-n[r],0)}function GetClipRect(n,t,i,r,u){let e=-t,o=-i,s=-n.Width+r+t,h=-n.Height+u+i,c=`${o}px ${s}px ${h}px ${e}px`,f="";return(n.RadiusTopLeft!=undefined||n.RadiusTopRight!=undefined||n.RadiusBottomLeft!=undefined||n.RadiusBottomRight!=undefined)&&(f=` round ${n.RadiusTopLeft||0}px ${n.RadiusTopRight||0}px ${n.RadiusBottomRight||0}px ${n.RadiusBottomLeft||0}px`),`inset(${c}${f})`}function Block(n){BaseModifier(n);n.isBlock=!0;n.Reactive={Depth:0,PaddingLeft:undefined,PaddingTop:undefined,PaddingRight:undefined,PaddingBottom:undefined,MarginLeft:undefined,MarginTop:undefined,MarginRight:undefined,MarginBottom:undefined,X:0,Y:0,AbsoluteX:()=>{let t=n.Parent;return t?Num.Sum(n.Parent.AbsoluteX,n.Parent.ScrollX,n.X):0},AbsoluteY:()=>{let t=n.Parent;return t?Num.Sum(n.Parent.AbsoluteY,-n.Parent.ScrollY,n.Y):0},Width:undefined,Height:undefined,ClipByParent:!1};DepthToStyle(n);XToStyle(n);YToStyle(n);WidthToStyle(n);HeightToStyle(n);new Reaction(()=>{n.style.clipPath=n.ClipByParent&&n.Parent?GetClipRect(n.Parent,n.X,n.Y,n.Width,n.Height):""});new Reaction(()=>{n.style.fontSize=ToCssSize(n.FontSize)});n.Events.MouseEnter=()=>n.Hover=!0;n.Events.MouseLeave=()=>n.Hover=!1;n.HtmlNodesOrdered=new Enumerable(function*(){yield*n.ExistingUnmanagedChildren});new Reaction(()=>{let t=[...n.HtmlNodesOrdered];SyncChildren(n,t)})}function AspectBlock(n){Block(n);n.Reactive={NativeWidth:undefined,NativeHeight:undefined,NativeAspect:n=>n.NativeWidth/n.NativeHeight,Aspect:n=>n.NativeAspect,Width:()=>Num.First(n.Height*n.Aspect,n.NativeWidth),Height:()=>Num.First(n.Width/n.Aspect,n.NativeHeight),Fit:"Inside",GravityVertical:0,GravityHorizontal:0};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.content;yield*n.UnmanagedChildren});new Reaction(()=>{let t=n.content;if(n.Fit=="Stretch")t.style.width="100%",t.style.height="100%";else{let s=n.Width/n.Height,f=0,e=0,i=n.Width,r=n.Height,u=n.Fit=="Inside"?1:-1,o=n.NativeAspect;u*s<u*o?(r=i/o,e=(n.Height-r)*(.5*u*n.GravityVertical+.5)):(i=r*o,f=(n.Width-i)*(.5*u*n.GravityHorizontal+.5));t.style.top=ToCssSize(e);t.style.left=ToCssSize(f);t.style.width=ToCssSize(i);t.style.height=ToCssSize(r);t.style.clipPath=GetClipRect(n,f,e,i,r)}})}function SvgIcon(n){n.Reactive={StrokeColor:undefined,StrokeWidth:undefined};new Reaction(()=>{n.children[0].style.fill=n.HierarchyForegroundColor});new Reaction(()=>{n.StrokeColor!=undefined&&(n.children[0].style.stroke=n.StrokeColor)});new Reaction(()=>{n.StrokeWidth!=undefined&&(n.children[0].style.strokeWidth=ToCssSize(n.StrokeWidth))})}function SvgIconBlock(n){AspectBlock(n);SvgIcon(n);n.Reactive={};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.content;yield*n.UnmanagedChildren})}function Modifier(n){Entity(this);this.isModifier=!0;let t=this,i=this.as;this.as=function(t){let r=i(t);if(r!=undefined)return r;let u=this.as;return this.as=()=>undefined,r=as(n,t),this.as=u,r};t.Reactive={Enabled:!0}}function Button(n){Modifier.call(this,n);this.isButton=!0;let t=this;t.Reactive={EventPropagation:!1};n.addEventListener("click",()=>{t.Script(t),event.stopPropagation()},!1)}function Cursor(n){Modifier.call(this,n);this.isCursor=!0;let t=this;t.Reactive={Option:"Pointer"};new Reaction(()=>{var i=t.Option;n.style.cursor=i===undefined||i===""?"":CamelToKebab(i)})}function Hover(n){Modifier.call(this,n);this.isHover=!0;let t=this;t.Reactive={Value:!1};new Reaction(()=>{n.Exists||(t.Value=!1)});n.addEventListener("mouseenter",()=>t.Value=!0,!1);n.addEventListener("mouseleave",()=>t.Value=!1,!1)}function BorderRadius(n){Modifier.call(this,n);this.isBorderRadius=!0;let t=this;t.Reactive={Radius:undefined,RadiusTopLeft:n=>n.Radius,RadiusTopRight:n=>n.Radius,RadiusBottomLeft:n=>n.Radius,RadiusBottomRight:n=>n.Radius};new Reaction(()=>{n.style.borderTopLeftRadius=ToCssSize(t.RadiusTopLeft),n.style.borderTopRightRadius=ToCssSize(t.RadiusTopRight),n.style.borderBottomLeftRadius=ToCssSize(t.RadiusBottomLeft),n.style.borderBottomRightRadius=ToCssSize(t.RadiusBottomRight)})}function Thumb(n){Block(n);n.Reactive={BackgroundColor:()=>n.Parent.HierarchyForegroundColor,Radius:()=>Num.Min(n.Width,n.Height)/2,Depth:1,Visibility:()=>window.Touch||n.ThumbSizeScale>=1?0:n.Hover?.5:.25}}function SetupPointerDrag(n,t){n.Events.PointerDown=()=>(event.stopPropagation(),event.preventDefault(),n.setPointerCapture(event.pointerId),n.Events.PointerMove=()=>{let n=event.movementX,i=event.movementY;(n!=0||i!=0)&&t(n,i)},n.Events.PointerUp=()=>{n.Events.PointerUp=undefined,n.Events.PointerMove=undefined},!1)}function ScrollLayout(n){Block(n);var u=undefined;let t=document.createElement("scrollable");t.style.touchAction="manipulation";t.style.overflow="auto";t.Events.Scroll=()=>{if(u!="Property"){u="Event";let i=Reaction.beginDeferred();n.ScrollX=t.scrollLeft;n.ScrollY=t.scrollTop;i.end();u=undefined}};n.Reactive={InternalWidth:()=>Num.Sum(n.Child.Layer.Width,n.LeftOffset,n.RightOffset),InternalHeight:()=>Num.Sum(n.Child.Layer.Height,n.TopOffset,n.BottomOffset),Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,LeftOffset:()=>CalcOffset(n,n.Child,"Left"),RightOffset:()=>CalcOffset(n,n.Child,"Right"),TopOffset:()=>CalcOffset(n,n.Child,"Top"),BottomOffset:()=>CalcOffset(n,n.Child,"Bottom"),ChildAreaWidth:()=>n.Width-n.LeftOffset-n.RightOffset,ChildAreaHeight:()=>n.Height-n.TopOffset-n.BottomOffset,ScrollX:undefined,ScrollY:undefined,ScrollBarThickness:4,ScrollBarMargin:2,ShowScrollBars:()=>!window.Touch};CreateSocket(n,"Child",n);CreateSocket(n,"VerticalThumb",n).setValue(Create(n,Thumb));CreateSocket(n,"HorizontalThumb",n).setValue(Create(n,Thumb));let i=n.VerticalThumb;i.Reactive={ThumbTravel:()=>n.Height-2*n.ScrollBarMargin,ThumbPositionScale:()=>i.ThumbTravel/n.Child.Layer.Height,ThumbSizeScale:()=>n.ChildAreaHeight/n.Child.Layer.Height,X:()=>n.Width-i.Width-n.ScrollBarMargin,Y:()=>n.ScrollBarMargin+n.ScrollY*i.ThumbPositionScale,Width:()=>n.ScrollBarThickness,Height:()=>i.ThumbTravel*i.ThumbSizeScale};let r=n.HorizontalThumb;r.Reactive={ThumbTravel:()=>n.Width-2*n.ScrollBarMargin,ThumbPositionScale:()=>r.ThumbTravel/n.Child.Width,ThumbSizeScale:()=>n.ChildAreaWidth/n.Child.Width,X:()=>n.ScrollBarMargin+n.ScrollX*r.ThumbPositionScale,Y:()=>n.Height-r.Height-n.ScrollBarMargin,Width:()=>r.ThumbTravel*r.ThumbSizeScale,Height:()=>n.ScrollBarThickness};n.HtmlNodesOrdered=new Enumerable(function*(){yield i;yield r;yield t;yield*n.UnmanagedChildren});new Reaction(()=>{SyncChildren(t,[n.Child])});SetupPointerDrag(i,(n,r)=>{t.scrollTop+=r/i.ThumbPositionScale});SetupPointerDrag(r,n=>{t.scrollLeft+=n/r.ThumbPositionScale});new Reaction(()=>{n.Child.Layer.Width=Math.max(n.Child.Layer.Width,n.ChildAreaWidth),n.Child.Layer.Height=Math.max(n.Child.Layer.Height,n.ChildAreaHeight)});new Reaction(()=>{t.style.left=ToCssSize(n.LeftOffset),t.style.top=ToCssSize(n.TopOffset),t.style.width=ToCssSize(n.ChildAreaWidth),t.style.height=ToCssSize(n.ChildAreaHeight)});new Reaction(()=>{(n.ScrollY,n.ScrollX,u!="Event")&&(u="Property",window.requestAnimationFrame(()=>{t.scrollTop=n.ScrollY,t.scrollLeft=n.ScrollX,u=undefined}))})}function SessionStorage(n){Modifier.call(this,n);this.isSessionStorage=!0;let t=this;t.Reactive={StoredValue:undefined,ValueToStore:undefined};new Reaction(()=>{sessionStorage.setItem(t.name,t.ValueToStore)})}function BlockWithChildren(n){Block(n);CreateCollectionSocket(n,"Children",n);let t=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){yield*t;yield*n.ExistingChildren})}function LayoutPropertiesNames(n){this.side=[n?"Top":"Left",n?"Bottom":"Right"];this.cordinate=n?"Y":"X";this.dimension=n?"Height":"Width"}function LayoutBorder(n,t,i=0,r=0){this.layoutPrpertiesNames=t;this.sideIndex=n;this.oppositeSideIndex=(n+1)%2;this.marginStop=i;this.bodyStop=r}function LinearLayoutRegion(n){let t=new LayoutPropertiesNames(n);this.vertical=n;this.border=[new LayoutBorder(0,t),new LayoutBorder(1,t),]}function LinearLayout(n){BlockWithChildren(n);n.Reactive={Vertical:!0,ItemGrow:1,Gap:0,GapGrow:0,PrimaryGravity:undefined,SecondaryGravity:undefined,Reverse:!1,OrderedChildren:n=>n.Reverse?n.ExistingChildren.Reverse().ToArray():n.ExistingChildren.ToArray(),InternalSecondarySize:t=>{var i=new LayoutPropertiesNames(!n.Vertical);let r=Num.Sum(t["Padding"+i.side[0]],t["Padding"+i.side[1]],0);for(let n of t.OrderedChildren){let u=CalcOffset(t,n,i.side[0]),f=CalcOffset(t,n,i.side[1]),e=Num.Sum(n.Layer[i.dimension],u+f);r=Num.Max(r,e)}return r},InternalPrimarySize:n=>{let t=LinearLayoutRegion.formContainer(n,n.Vertical),i=n.Gap;for(const[r,u]of n.OrderedChildren.entries())r>0&&t.border[0].ShiftByPixels(i),t.border[0].Shift(u);return t.GetSize()},InternalWidth:n=>n.Vertical?n.InternalSecondarySize:n.InternalPrimarySize,InternalHeight:n=>n.Vertical?n.InternalPrimarySize:n.InternalSecondarySize,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,PrimarySize:n=>n.Vertical?n.Height:n.Width,SecondarySize:n=>n.Vertical?n.Width:n.Height};new Reaction(()=>{var i=n.SecondarySize,t;if(i!=undefined)if(t=new LayoutPropertiesNames(!n.Vertical),n.SecondaryGravity==undefined)for(let r of n.OrderedChildren){let u=CalcOffset(n,r,t.side[0]),f=CalcOffset(n,r,t.side[1]),e=i-u-f;r.Layer[t.cordinate]=u;r.Layer[t.dimension]=e}else for(let r of n.OrderedChildren){let u=CalcOffset(n,r,t.side[0]),s=CalcOffset(n,r,t.side[1]),f=r.Layer[t.dimension],e=i-u-s,o=e-f;o>0?u+=(.5*n.SecondaryGravity+.5)*o:f=e;r.Layer[t.cordinate]=u;r.Layer[t.dimension]=f}});new Reaction(()=>{if(n.PrimarySize!=undefined){let r=n.OrderedChildren;var t=new LayoutPropertiesNames(n.Vertical);let i=LinearLayoutRegion.formContainer(n,n.Vertical),u=n.Gap;if(n.InternalPrimarySize>n.PrimarySize){let f=n.PrimarySize/n.InternalPrimarySize;for(const[e,n]of r.entries()){e>0&&i.border[0].ShiftByPixels(u*f);let r=n.Layer[t.dimension],o=i.border[0].Shift(n,r);n.Layer[t.cordinate]=o*f;n.Layer[t.dimension]=r*f}}else{let f=0,e=0,h=n.PrimarySize-n.InternalPrimarySize,o=0,s=0;if(n.PrimaryGravity==undefined)f=n.ItemGrow,e=n.GapGrow,o=f*r.length+e*(r.length-1),s=o!=0?h/o:0;else{let t=(.5*n.PrimaryGravity+.5)*h;i.border[0].ShiftByPixels(t)}for(const[o,n]of r.entries()){o>0&&i.border[0].ShiftByPixels(u+e*s);let r=n.Layer[t.dimension]||0;r=r+f*s;let h=i.border[0].Shift(n,r);n.Layer[t.cordinate]=h;n.Layer[t.dimension]=r}}}})}function MenuResponsive(n){BlockWithChildren(n);n.isMenuResponsive=!0;CreateSocket(n,"Logo",n);CreateSocket(n,"Button",n);CreateSocket(n,"Dropdown",n);n.Reactive={PrimaryGravity:1,SecondaryGravity:0,DropdownExpanded:n=>n.Button.as("Toggle").Value,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,InternalHeight:n=>{var t=new LayoutPropertiesNames(!0);let i=Num.Sum(n["Padding"+t.side[0]],n["Padding"+t.side[1]]),u=n.Children.ToArray(),f=n.Dropdown.Children.ToArray(),r=u.concat(f);n.Logo&&r.push(n.Logo);for(let u of r){let r=CalcOffset(n,u,t.side[0]),f=CalcOffset(n,u,t.side[1]),e=Num.Sum(u.Layer[t.dimension],r+f);i=Num.Max(i,e)}return i},InternalWidth:n=>{let t=LinearLayoutRegion.formContainer(n,!1),i=[...n.Children],r=[...n.Dropdown.Children],u=i.concat(r);n.Logo&&t.border[0].Shift(n.Logo);for(let n of u)t.border[0].Shift(n);return t.GetSize()}};let r=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){let t=n.Logo;t&&t.Exists&&(yield t);let i=n.Button;i.Exists&&(yield i);let u=n.Dropdown;u.Exists&&(yield u);yield*r});let i=function(t,i){let u=[],r=LinearLayoutRegion.formContainer(n,!1);if(i){let t=r.border[1].Shift(n.Button),i=n.Width-n.Button.Layer.Width-t;n.Button.Layer.X=i}n.Logo&&(n.Logo.Layer.X=r.border[0].Shift(n.Logo));let f=n.Width-r.GetSize();for(const[i,e]of t.entries()){let t=r.border[0].Shift(e);if(r.GetSize()>n.Width)break;f=n.Width-r.GetSize();u[i]=t}return{menuItemsPositions:u,extraPixels:f}};new Reaction(()=>{let r=[...n.Children],e=[...n.Dropdown.Children],u=r.concat(e),{menuItemsPositions:t,extraPixels:f}=i(u,!1);if(t.length<u.length&&({menuItemsPositions:t,extraPixels:f}=i(u,!0)),t.length<r.length){let i=n.Children.RemoveRange(t.length,r.length-t.length);n.Dropdown.Children.InsertRange(0,i)}else if(t.length>r.length){let i=n.Dropdown.Children.RemoveRange(0,t.length-r.length);n.Children.InsertRange(r.length,i)}let o=f*(.5*n.PrimaryGravity+.5);for(const[n,i]of t.entries())u[n].Layer.X=i+o});let t=function(t){let i=LinearLayoutRegion.formContainer(n,!0),r=i.border[0].Shift(t);i=LinearLayoutRegion.formContainer(n,!0);let u=i.border[1].Shift(t),f=n.Height-t.Height-u;return((n.SecondaryGravity+1)*f+(1-n.SecondaryGravity)*r)/2};new Reaction(()=>{n.Logo&&(n.Logo.Layer.Y=t(n.Logo));let i=t(n.Button);n.Button.Layer.Y=i;for(let i of[...n.Children])i.Layer.Y=t(i)})}function Image(n){AspectBlock(n)}function Toggle(n){Modifier.call(this,n);this.isToggle=!0;let t=this;t.Reactive={Value:!1};n.addEventListener("click",()=>{t.Value=!t.Value},!1)}function Paragraph(n){Block(n);n.Reactive={Selectable:!0,InternalWidth:()=>Num.Sum(n.MaxContentWidth,n.PaddingLeft,n.PaddingRight),InternalHeight:undefined,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,MaxContentWidth:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.maxWidth,MinContentWidth:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.minWidth,MaxContentHeight:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.maxHeight,MinContentHeight:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.minHeight,PaddingLeft:()=>n.BackgroundColor!=undefined?10:undefined,PaddingRight:()=>n.BackgroundColor!=undefined?10:undefined,PaddingTop:()=>n.BackgroundColor!=undefined?8:undefined,PaddingBottom:()=>n.BackgroundColor!=undefined?8:undefined,MarginLeft:()=>n.BackgroundColor!=undefined?0:10,MarginRight:()=>n.BackgroundColor!=undefined?0:10,MarginTop:()=>n.BackgroundColor!=undefined?0:8,MarginBottom:()=>n.BackgroundColor!=undefined?0:8};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.inlineContainer;yield*n.UnmanagedChildren});new Reaction(()=>{let t=n.inlineContainer;n.TextAlignmentHorizontal=="JustifyIncludingLastLine"?(t.style.textAlign="justify",t.style.textAlignLast="justify"):(t.style.textAlignLast="",t.style.textAlign=n.TextAlignmentHorizontal===undefined?"":n.TextAlignmentHorizontal.toLowerCase())});new Reaction(()=>{if(n.Width!=undefined){n.style.width=ToCssSize(n.Width);let t=n.inlineContainer;t.style.transformOrigin="";t.style.transform="";t.style.width="";t.style.display="";t.style.left=ToCssSize(n.PaddingLeft);t.style.top=ToCssSize(n.PaddingTop);let r=Num.Sum(n.MinContentWidth,n.PaddingLeft,n.PaddingRight);if(n.Width<r){let i=Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight)/n.MinContentWidth;i>0?(t.style.width="min-content",t.style.transformOrigin="top left",t.style.transform=`scale(${i}, ${i})`,n.InternalHeight=Num.Sum(n.MaxContentHeight*i,n.PaddingTop,n.PaddingBottom)):(t.style.display="none",n.InternalHeight=Num.Sum(n.PaddingTop,n.PaddingBottom));return}let u=Num.Sum(n.MaxContentWidth,n.PaddingLeft,n.PaddingRight),i=n.Width-u;if(i>-.001){let r=Num.Sum(n.MinContentHeight,n.PaddingTop,n.PaddingBottom);n.InternalHeight=r;t.style.width=i>.001?ToCssSize(Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight)):"max-content";return}var f=t.getBoundingClientRect();n.InternalHeight=Num.Sum(f.height,n.PaddingTop,n.PaddingBottom)}});HeightToStyle(n)}function AbstractInline(n){BaseModifier(n)}function SvgIconInline(n){AbstractInline(n);SvgIcon(n);n.Reactive={BaselineOffset:.14};let t=n.children[0];new Reaction(()=>{let t=n.BaselineOffset})}function LayoutOverride(n){Block(n);n.isLayoutOverride=!0;CreateSocket(n,"Child",n);n.Reactive={Width:()=>n.Child.Layer.Width,Height:()=>n.Child.Layer.Height,MarginTop:()=>n.Child.Layer.MarginTop,MarginBottom:()=>n.Child.Layer.MarginBottom,MarginLeft:()=>n.Child.Layer.MarginLeft,MarginRight:()=>n.Child.Layer.MarginRight,Child:undefined,OverrideX:undefined,OverrideY:undefined,OverrideWidth:undefined,OverrideHeight:undefined};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.Child;yield*n.UnmanagedChildren});new Reaction(()=>{n.Child.Layer.X=n.OverrideX!=undefined?n.OverrideX-n.X:0,n.Child.Layer.Y=n.OverrideY!=undefined?n.OverrideY-n.Y:0,n.Child.Layer.Width=n.OverrideWidth||n.Width,n.Child.Layer.Height=n.OverrideHeight||n.Height})}function Id(n){Modifier.call(this,n);this.isId=!0;let t=this;t.Reactive={Value:undefined};new Reaction(()=>{var i=t.Value||"";n.id=i})}var Num={},Animation,currentSocket,parentStack,parentGetDepth,Storage;Num.IsNaNOrNull=function(n){return n===null?!0:isNaN(n)};Num.Max=function(){let n=undefined;for(let t of arguments)Num.IsNaNOrNull(t)||(n=n===undefined?t:Math.max(n,t));return n};Num.Min=function(){let n=undefined;for(let t of arguments)Num.IsNaNOrNull(t)||(n=n===undefined?t:Math.min(n,t));return n};Num.Clamp=function(n,t,i){return Num.Max(t,Num.Min(i,n))};Num.Sum=function(){let n=!1,t=0;for(let i of arguments)Num.IsNaNOrNull(i)||(n=!0,t+=i);return n?t:undefined};Num.First=function(){for(let n of arguments)if(n!==undefined&&!isNaN(n)&&n!==null)return n;return undefined};Num.PiecewiseLinearInterpolation=function(n,...t){if(n==undefined)return undefined;if(t.length===0)throw new Error("Keyframes list must not be empty.");if(t.length===1||(t.sort((n,t)=>n[0]-t[0]),n<t[0][0]))return t[0][1];if(n>=t[t.length-1][0])return t[t.length-1][1];for(let i=1;i<t.length;i++)if(n<t[i][0]){const r=t[i][0]-t[i-1][0],u=(n-t[i-1][0])/r,f=t[i][1]-t[i-1][1];return t[i-1][1]+f*u}throw new Error("Keyframes are not sorted correctly.");};Enumerable.Empty=function(){return new Enumerable(function*(){})};Enumerable.prototype.ToArray=function(){return[...this]};Enumerable.Range=function(n,t){return new Enumerable(function*(){for(let i=n;i<n+t;i++)yield i})};Enumerable.FromArguments=function(){return new Enumerable(arguments)};Enumerable.prototype.Where=function(n){let t=this,i=function*(){for(let i of t)n(i)&&(yield i)};return new Enumerable(i)};Enumerable.prototype.Select=function(n){let t=this,i=function*(){for(let i of t)yield n(i)};return new Enumerable(i)};Enumerable.prototype.First=function(n=()=>true,t=()=>{throw new Error("Out of range");}){let r=this,u=r[Symbol.iterator]();for(;;){var i=u.next();if(i.done)return t();if(n(i.value))return i.value}};Enumerable.prototype.Last=function(n=()=>true){let t=[...this];if(t.length>0)for(let i=t.length-1;i>=0;i--)if(n(t[i]))return t[i]};Enumerable.prototype.Count=function(n){let t=[...this];if(n===undefined)return t.length;let i=0;for(let r=0;r<t.length;r++)n(t[r])&&i++;return i};Enumerable.prototype.Any=function(n=()=>true){var t;let r=this,i=r[Symbol.iterator]();if(n===undefined)return t=i.next(),!t.done;for(;;){if(t=i.next(),t.done)return!1;if(n(t.value))return!0}};Enumerable.prototype.Aggregate=function(n,t){let i=[...this],r=0;if(arguments.length==1){if(i.length==0)return undefined;r=1;t=i[0]}for(let u=r;u<i.length;u++)t=n(t,i[u]);return t};Enumerable.prototype.Max=function(){return this.Aggregate((n,t)=>n>t?n:t)};Enumerable.prototype.Min=function(){return this.Aggregate((n,t)=>n<t?n:t)};Enumerable.prototype.Sum=function(){return this.Aggregate((n,t)=>n+t)};Enumerable.prototype.Order=function(n=(n,t)=>n==t?0:(n<t?-1:1)){let t=[...this];return t.sort(n),new Enumerable(t)};Enumerable.prototype.OrderBy=function(n,t=function(t,i){let r=n(t);let u=n(i);return r==u?0:r<u?-1:1}){return this.Order(t)};Enumerable.prototype.Reverse=function(){let n=[...this],t=function*(){for(let t=n.length-1;t>=0;t--)yield n[t]};return new Enumerable(t)};Enumerable.prototype.Skip=function(n){let t=this,i=function*(){for(let i of t)n>0?n--:yield i};return new Enumerable(i)};Enumerable.prototype.Take=function(n){let t=this,i=function*(){for(let i of t)if(n>0)yield i,n--;else break};return new Enumerable(i)};Animation={};Animation.Duration=function(n,t){function u(n,t,i){return n+i*(t-n)}let i=n*1e3;if(this.startValue==undefined)return this.startTime=performance.now(),this.startValue=t,this.targetValue=t,this.currentValue=t,t;t!=this.targetValue&&(this.startTime=performance.now(),this.startValue=this.currentValue,this.targetValue=t);let r=performance.now()-this.startTime;r<i&&window.AnimationFrame;let f=Math.min(r/i,1);return this.currentValue=u(this.startValue,this.targetValue,f),this.currentValue};Animation.SpeedLimit=function(n,t){if(this.currentValue==undefined)return this.currentValue=t,t;if(this.currentValue!=t){let i=performance.now();if(this.currentValueTime==undefined)this.currentValueTime=i;else{let u=(i-this.currentValueTime)*.001;this.currentValueTime=i;let f=t-this.currentValue,r=u*n;this.currentValue=Math.sign(f)>0?Math.min(this.currentValue+r,t):Math.max(this.currentValue-r,t)}this.currentValue!=t?window.AnimationFrame:this.currentValueTime=undefined}return this.currentValue};currentSocket=undefined;parentStack=[];Reaction.prototype=Object.create(ReactionBase.prototype);Reaction.prototype.constructor=Reaction;Reaction.beginDeferred=function(){return Reaction.deferred?{end:function(){}}:(Reaction.deferred=new Set,{end:function(){let n=64;while(Reaction.deferred.size>0&n>0){let t=Array.from(Reaction.deferred);for(let n of t){Reaction.deferred.delete(n);try{n.execute()}catch(i){console.warn(i)}}n--}n==0&&console.error("Recursive property binding",Reaction.deferred);Reaction.deferred=undefined}})};Reaction.beginNonReactive=function(){if(!Reaction.current){let n=Reaction.current;return Reaction.current=undefined,{end:function(){Reaction.current=n}}}return{end:function(){}}};Binding.prototype=Object.create(ReactionBase.prototype);Binding.prototype.constructor=Binding;Property.exists=function(n,t){var i=!!Object.getOwnPropertyDescriptor(n,t),r=n.hasOwnProperty("__"+t);return i&&r};Property.nameAvailable=function(n,t){return Object.getOwnPropertyDescriptor(n,t)?!1:n.hasOwnProperty(t)?!1:!0};Object.defineProperty(Object.prototype,"Reactive",{get:function(){return new Proxy(this,{get(n,t){return n["__"+t]},set:function(n,t,i){if(n.hasOwnProperty("__"+t)){const r=n["__"+t];r.setValue(i)}else{let r=new Property;r.setValue(i);r.attach(n,t)}}})},set:function(n){let t=this.Reactive,i=Reaction.beginDeferred();if(n instanceof Object)for(const[i,r]of Object.entries(n))t[i]=r;i.end()}});Object.defineProperty(Object.prototype,"Events",{get:function(){const n="___";return new Proxy(this,{get(t,i){return t[n+i]},set:function(t,i,r){function u(r){t[n+i]=r;t.addEventListener(i,r.handler,r)}if(i=i.toLowerCase(),t.hasOwnProperty(n+i)){let r=t[n+i];r!==undefined&&t.removeEventListener(i,r.handler)}r!==undefined&&(typeof r=="function"?u({handler:r,capture:!1}):typeof r=="object"?(typeof r.handler!="function"&&console.error("If the value is an object, it must have a 'handler' field of type 'function'"),r.capture=!1,u(r)):console.warn(`Type '${typeof r}' is invalid for event. To remove event handler assign 'undefined'`))}})}});parentGetDepth=1;Object.setPrototypeOf(DomLinkedList.prototype,Enumerable.prototype);DomLinkedList.prototype.InsertRange=function(n,t){if(n<0)throw new Error(`"startIndex" out of range : ${n}`);let i=this.firstChildProperty,r=0;while(r<n){if(!i.getValue())throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${count}`);r++;i=i.getValue().__NextSibling}var u=i.getValue();let f=Reaction.beginDeferred();i.setValue(t[0]);t[t.length-1].NextSibling=u;for(let[n,i]of t.entries())n<t.length-1&&(i.NextSibling=t[n+1]);f.end()};DomLinkedList.prototype.RemoveRange=function(n,t){if(t<1||n<0)throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${t}`);let i=this.firstChildProperty,u=i,r=undefined,f=[];for(let e=0;e<n+t;e++){if(!i.getValue())throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${t}`);e==n&&(u=i);e>=n&&f.push(i.getValue());e==n+t-1&&(r=i.getValue());i=i.getValue().__NextSibling}let e=Reaction.beginDeferred();return u.setValue(r.NextSibling),r.NextSibling=undefined,e.end(),f};DomLinkedList.prototype.Insert=function(n,t){this.InsertRange(n,[t])};DomLinkedList.prototype.RemoveAt=function(n){var t=this.RemoveRange(n,1);return t[0]};Color.prototype.toString=function(){let n=this.a||1;return`rgba(${Math.round(255*this.r)},${Math.round(255*this.g)},${Math.round(255*this.b)},${n})`};Color.CplusC=function(n,t){return new Color(n.r+t.r,n.g+t.g,n.b+t.b,n.a+t.a||n.a||t.a)};Color.CplusN=function(n,t){return new Color(n.r+t,n.g+t,n.b+t,n.a+t)};Color.NplusC=function(n,t){return new Color(n+t.r,n+t.g,n+t.b,n+t.a)};Color.CminusC=function(n,t){return new Color(n.r-t.r,n.g-t.g,n.b-t.b,n.a-t.a||n.a||t.a)};Color.CminusN=function(n,t){return new Color(n.r-t,n.g-t,n.b-t,n.a-t)};Color.NminusC=function(n,t){return new Color(n-t.r,n-t.g,n-t.b,n-t.a)};Color.CmulC=function(n,t){return new Color(n.r*t.r,n.g*t.g,n.b*t.b,n.a*t.a||n.a||t.a)};Color.CmulN=function(n,t){return new Color(n.r*t,n.g*t,n.b*t,n.a*t)};Color.NmulC=function(n,t){return new Color(n*t.r,n*t.g,n*t.b,n*t.a)};Color.FromGrayscale=function(n){return new Color(n,n,n)};Color.FromIntRGB=function(n){return new Color((n>>16&255)/255,(n>>8&255)/255,(n&255)/255)};Color.FromIntChannelsRGB=function(n,t,i){return new Color(n/255,t/255,i/255)};Color.FromIntChannelsRGBA=function(n,t,i,r){return new Color(n/255,t/255,i/255,r/255)};Color.Lerp=function(n,t,i){return n.Lerp(t,i)};Color.prototype.Lerp=function(n,t){var i=1-t,r=Num.First(this.a*i+n.a*t,this.a,n.a),u=this.r*i+n.r*t,f=this.g*i+n.g*t,e=this.b*i+n.b*t;return new Color(u,f,e,r)};Color.prototype.ContrastColor=function(n=1){var t=.2125*this.r+.7154*this.g+.0721*this.b,i=t>.5?new Color(0,0,0,1):new Color(1,1,1,1);return this.Lerp(i,n)};Storage={};Storage.Elements={};Storage.Restore=function(n,t){let r=sessionStorage,i=r.getItem(n);if(Storage.Elements[n]==undefined&&(Storage.Elements[n]=new Reaction(()=>{let i=t();r.setItem(n,typeof i+" "+i)})),i!=null){let r=i.indexOf(" "),n=i.substring(0,r),t=i.substring(r+1);if(n=="undefined")return undefined;if(n=="number")return Number(t);if(n=="boolean")return t==="true";if(n=="string")return t}else return undefined},function(){function u(){document.documentElement.style.visibility="hidden"}function f(){document.documentElement.style.visibility="visible"}function n(n,t){const i=new IntersectionObserver(n=>{t(n),i.disconnect()});for(const t of n)i.observe(t)}function e(t){const i=document.querySelectorAll(".inline-container");if(i.length==0){t();return}for(const n of i)n.style.fontSize=Paragraph.testFontSize+"px",n.style.width="min-content";n(i,r=>{for(const n of r){const t=n.boundingClientRect;n.target.minWidth=t.width;n.target.maxHeight=t.height}for(const n of i)n.style.width="max-content";n(i,n=>{for(const t of n){const n=t.boundingClientRect;t.target.maxWidth=n.width;t.target.minHeight=n.height}for(const n of i)n.style.width="",n.style.fontSize="";t()})})}function i(){if(t--,t==0){let n=performance.now();console.log("----readyToLayoutTime",n.toFixed(1));e(()=>{let t=performance.now();console.log("----inlineContainersMeasured",(t-n).toFixed(1));Initialize();let i=performance.now();console.log("----Initialize()",(i-t).toFixed(1));r.end();let u=performance.now();console.log("-----Reactions--",(u-i).toFixed(1));f();location.hash!==""&&window.requestAnimationFrame(()=>{location.href=location.hash})})}}let r=Reaction.beginDeferred();u();let t=2;document.fonts.ready.then(()=>{console.log("-------------Fonts ready--",performance.now().toFixed(1)),i()});window.addEventListener("DOMContentLoaded",function(){console.log("------DOMContentLoaded--",performance.now().toFixed(1));i()})}();LayoutBorder.prototype.ShiftMaxOf=function(n){let t=0,i=0;for(let r of n){let n=r["Margin"+this.layoutPrpertiesNames.side[this.sideIndex]]||0,u=r["Margin"+this.layoutPrpertiesNames.side[this.oppositeSideIndex]]||0,f=r.Layer[this.layoutPrpertiesNames.dimension]||0,e=Math.max(this.bodyStop,this.marginStop+n);t=Math.max(t,e+f);i=Math.max(i,this.marginStop+u)}this.marginStop=t;this.bodyStop=i};LayoutBorder.prototype.Shift=function(n,t=undefined){let r=n["Margin"+this.layoutPrpertiesNames.side[this.sideIndex]]||0,u=n["Margin"+this.layoutPrpertiesNames.side[this.oppositeSideIndex]]||0;t==undefined&&(t=n.Layer[this.layoutPrpertiesNames.dimension]||0);let i=Math.max(this.bodyStop,this.marginStop+r);return this.marginStop=i+t,this.bodyStop=this.marginStop+u,i};LayoutBorder.prototype.ShiftByPixels=function(n){this.marginStop+=n;this.bodyStop+=n};LinearLayoutRegion.prototype.GetSize=function(){return Math.max(this.border[0].marginStop+this.border[1].bodyStop,this.border[1].marginStop+this.border[0].bodyStop)};LinearLayoutRegion.formContainer=function(n,t){let i=new LinearLayoutRegion(t),r=new LayoutPropertiesNames(t),u=[n["Padding"+r.side[0]],n["Padding"+r.side[1]],];for(let t=0;t<2;t++)if(i.border[t].bodyStop=0,i.border[t].marginStop=0,u[t]!=undefined)i.border[t].bodyStop=u[t];else{let u=n["Margin"+r.side[t]];u!==undefined&&(i.border[t].marginStop=-u)}return i};Paragraph.testFontSize=18</script><style>html{display:initial;position:initial;overscroll-behavior-x:none;overflow:hidden;overflow-x:hidden;overflow-y:hidden}.js{position:absolute;overflow:hidden;overflow-x:hidden;overflow-y:hidden;white-space:normal;touch-action:none;margin:0}.js *{scrollbar-width:none}.js *::-webkit-scrollbar{display:none}head{display:none}body{line-height:1.5;tab-size:4}body *{touch-action:inherit;display:block;overflow-x:visible;overflow-y:visible;position:absolute;margin:0;visibility:inherit;margin-block-start:0;margin-block-end:0;margin-inline-start:0;margin-inline-end:0;line-height:inherit;text-decoration-line:inherit;text-decoration-color:inherit;color:inherit;justify-content:inherit;align-content:inherit;text-align:inherit;box-sizing:border-box;word-break:keep-all;white-space:inherit}.inline-container{white-space:break-spaces}.inline-container *{position:static;display:inline;vertical-align:baseline}.inline-container a{text-decoration-line:underline}</style><style>@font-face {font-family: 'Inter';font-weight: 700;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,d09GMgABAAAAAAUUABAAAAAACQQAAAS6AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbgVIcKAZgP1NUQVREAFQRCAqFcIRqCxQAATYCJAMkBCAFhBgHIAwHG1YHyAQCwNMuKQYog/EgOuIBse0LyP9cU7cG2vNK99u/67+IoCpsm09nEwq6jaqAyiakW8SzmOCMZy8CYIqQEBFYNHCvAWN8iELMqd2wJebF3apLURBlE+Zb0VGkqSzFMCRtayUihggpkZ6t1hpGKWoM0EKyzpU+T0nyx9j9psV88kVoTD5NmHV68FHMWatQokbBixjWBByqKIDR+OGntAbCACJjC4Mw8QCqPgM/9Tzguq9V3OaIoiSiUsw8qHyIKFuzVIZ+P81bNGrBEiRZNl7zry0YrxHXgLCYQ/UelZAwXSkcTgpsXYlPS++8/GrBAndVFZdWC5aHCAQGTbiJBygJJSQ4rNDzHTiUQH8KVNUWJRmXCONuUyKhoZhq+gJ6TqInxVTRR5bll/JCebY8VZ40OmsQuCrIMhZJNBJT1nA03GkcETo0QaXrUR28R1CDKI0TDpb+ymCltaltgaq/sp/o6UNeWzLu8W3F8DtPTMbrdJEmBmZ9TQXjLVpth/E3bghD9XrjcVotQ3S6vuMe3xaGNhl4pLsF/RRWFUJL9qDJ+Bs3ortptQ/79zXt37/rMsHFbW/VTadjiPah8YTHrXs0eazNMn3r7nq9MPTGE5OJj/qLlooOZn17/+S0Q7sV2pZavb5N/4Iis/wC08J806LCgnH6pA463Y02bfqZ9TXpb9ZHq9V6DWZGV5iRn+HP7n4k/afzwHGz844VXQXDtZ2dN60duqF14ZCDZuJaDFnx3fpB8YANzYyb500qb3h+7NgGZyeX5BVMrqh3duSo+hcmVRLX1f1dyyO7u395t1vT+PTjOequJ46W+JyoaWaJ4ZCOTSZOaNqp24y2LWbQ/k9ly5Xz2xXVqfFv0aTdWCe3iXuueVXjWxcMWYchtB9Rf6TD1MymhRH1e4xuXiu+TYNCe7v4B6F3zq+aveVJ1KAzkfn/3e8ss7PuOLVrZfmY1uQYdanfw8Yo5mHI7XsbZizR+VSd9G78jdRdZCzMuFq2DtWcZO+MDKdg932fs1J+VTk3F+eqnncafJJZSM9xcpQcdx6Qz8jbw6wDrfeclnfLbElvNsHxWpfU+vZ9FG2TXeo4Znj1Cjli8zTf0tY2/7hv61VB/aftedATeGMOKJT3vK9O3dnFIuWboYtJUfHu5/0udNO9Vk31Px7+HeBaaNoO1c+d7EG9Wyu5Dfnx8OtX18In/B0wMpkgeKv/UaGeTrH4n3XqMHKVtUlTN6W2upIIceLM3UbMwJTyr92E4VF9EYVZb5agfBMyU/gcGwWMeQnfOs9DbFQQxC6jEluWGVXEUWxUY0tbgzkx+DgJFpjiaLTEGHN0ePcojG7zHGqOhjxqKKYblbTwxUuppg0aCsgjn4DdXk05SYRzYlX0oJICyqkmfJhK4EeKCaOMSvIIpwm1aUi9EQ5pqCSULMoopiet09CWwLtLkYgmjAgiSSSZPJqoJhSLdSOWSCKIQ8NNdx9FLU30Wr85LWhEC5LnY/yxcj6bS5XTd/0UtKpEFBH2comW5KNBmjHRlEq+WoiGHi1TmdQcCIBtViERcDieKp4CUs6nhu5Kdw/KKCG8ZaKEKtVXMDIGfnFd4sL/ERz5Q3XuEeSRW5QTAQ==) format('woff2');}
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0"><title>Paragraph Component</title><meta property="og:site_name" content="StaticSharp"><meta property="og:title" content="Paragraph Component"><meta property="twitter:title" content="Paragraph Component"><meta property="twitter:card" content="summary_large_image"><meta property="og:url" content="https://staticsharp.github.io/Components/ParagraphComponent/ru"><meta property="twitter:url" content="https://staticsharp.github.io/Components/ParagraphComponent/ru"><meta property="description" content="Paragraph is a Block of text and other Inlines"><meta property="og:description" content="Paragraph is a Block of text and other Inlines"><meta property="twitter:description" content="Paragraph is a Block of text and other Inlines"><meta property="og:type" content="website"><link rel="icon" type="image/svg+xml" href="../../Assets/50ADFCBE1D494D00887F429A64139198.svg"><script>function ToCssSize(n){return n!=undefined?n.toFixed(4)+"px":""}function ToCssValue(n){return n!=undefined?n:""}function DepthToStyle(n){return new Reaction(()=>{n.style.zIndex=n.Depth})}function XToStyle(n){return new Reaction(()=>{n.style.left=ToCssSize(n.X)})}function YToStyle(n){return new Reaction(()=>{n.style.top=ToCssSize(n.Y)})}function WidthToStyle(n){return new Reaction(()=>{n.style.width=ToCssSize(n.Width)})}function HeightToStyle(n){return new Reaction(()=>{n.style.height=ToCssSize(n.Height)})}function Enumerable(n){if(typeof n=="function"){this[Symbol.iterator]=n;return}if(typeof n[Symbol.iterator]=="function"){this[Symbol.iterator]=n[Symbol.iterator].bind(n);return}throw new Error("Invalid source type");}function as(n,t){return n==undefined?undefined:typeof n.as=="function"?n.as(t):undefined}function convert(n,t){var i=as(n,t);if(i==undefined){let i=`Failed to convert element to type ${t}`;console.error(i,n);throw new Error(i);}return i}function _deleteScript(){let n=document.currentScript,t=n.parentElement;return t.removeChild(n),t}function getCurrentParent(){return parentStack.length>0?parentStack[parentStack.length-1]:undefined}function SetCurrentSocket(n){var i=_deleteScript(),t=getCurrentParent();currentSocket=t.Reactive[n]}function AssignToParentProperty(n){var t=_deleteScript();let i=getCurrentParent();i[n]=t}function AssignPreviousTagToParentProperty(n){var t=_deleteScript();let i=t.lastChild,r=getCurrentParent();r[n]=i}function Constructor(){var n=_deleteScript();for(let t of arguments)t(n);return currentSocket&&currentSocket.setValue(n),currentSocket=n.Reactive.FirstChild,parentStack.push(n),n}function Pop(){let n=_deleteScript();currentSocket=n.Reactive.NextSibling;parentStack.pop();typeof n.AfterChildren=="function"&&n.AfterChildren()}function CamelToKebab(n){return n.replace(/[A-Z]+(?![a-z])|[A-Z]/g,(n,t)=>(t?"-":"")+n.toLowerCase())}function CreateSocket(n,t,i){let r=new Property;return r.attach(n,t),r.onAssign=function(n,t){if(n!=t){if(n){n.place=undefined;n.Parent=undefined;n.Layer();let t=n.NextSibling;while(t)t.Parent=undefined,t.Layer(),t=t.NextSibling}if(t&&(t.place&&t.place.setValue(undefined),t.place=r,t.Parent=i,t.Layer(),i!=undefined)){let n=t.NextSibling;while(n)n.Parent=i,n.Layer(),n=n.NextSibling}}},r}function CreateCollectionSocket(n,t,i){let u=t+"First",f=CreateSocket(n,u,i);var r=new DomLinkedList(f);n[t]=r;n["Existing"+t]=r.Where(n=>n.Exists)}function Create(n,...t){let r=t[0],u=CamelToKebab(r.name),i=document.createElement(u);n.appendChild(i);i.Parent=n;for(let n of t)n(i);return i}function ReactionBase(n){let t=this;t.triggeringProperties=new Set;t.func=n;t.addTriggeringProperty=function(n){t.triggeringProperties.add(n);n.dependentReactions.add(t)};t.unsubscribeFromTriggeringProperty=function(n){return n.dependentReactions.delete(t)?(t.triggeringProperties.delete(n),!0):!1};t.unsubscribeFromTriggeringProperties=function(){if(t.triggeringProperties.size!=0){for(let n of t.triggeringProperties)n.dependentReactions.delete(t);t.triggeringProperties.clear()}};t.execute=function(n){let i=Reaction.current;Reaction.current=t;t.unsubscribeFromTriggeringProperties();try{return t.func(n)}finally{Reaction.current=i}};t.dirtImmune=!1}function Reaction(n){let t=this;if(ReactionBase.call(t,n),t.makeDirty=function(){t.dirtImmune||Reaction.deferred.add(t)},Reaction.deferred)Reaction.deferred.add(t);else{let n=Reaction.beginDeferred();try{t.execute()}catch(i){console.warn(i)}n.end()}}function Binding(n,t){let i=this;ReactionBase.call(i,n);i.dirty=!0;i.makeDirty=function(){i.dirty||(i.dirty=!0,t())}}function Property(){let n=this;n.name="";n.object=null;n.dependentReactions=new Set;n.binding=undefined;n.makeDirty=function(){n.binding.makeDirty()};n.onBindingBecameDirty=function(){n.makeDependentReactionsDirty()};n.makeDependentReactionsDirty=function(){if(n.dependentReactions.size!=0){var t=Reaction.beginDeferred();n.dependentReactions.forEach(n=>n.makeDirty());t.end()}};n.executionInProgress=!1;n.replaceValue=function(n){let t=Reaction.current;Reaction.current=undefined;let i=n(this.getValue());this.setValue(i);Reaction.current=t};n.getValue=function(){if(Reaction.current&&Reaction.current.addTriggeringProperty(n),n.binding&&n.binding.dirty){if(n.executionInProgress)return n.reactionsWhoReceivedOldValue==undefined&&(n.reactionsWhoReceivedOldValue=new Set),n.reactionsWhoReceivedOldValue.add(Reaction.current),n.value;try{var t=n.value;try{n.executionInProgress=!0;n.value=n.binding.execute(n.object)}finally{if(n.executionInProgress=!1,n.binding.dirty=!1,n.reactionsWhoReceivedOldValue){if(n.value!==t){let t=Reaction.beginDeferred();n.reactionsWhoReceivedOldValue.forEach(n=>n.makeDirty());t.end()}n.reactionsWhoReceivedOldValue=undefined}}}catch(i){console.error(i)}}return n.value};n.onAssign=undefined;n.setValue=function(t){var i;if(typeof t=="function"){if(t.isBindingConstructor&&(t=t(n),console.log("isBindingConstructor",t,this.object)),n.binding){if(n.binding.func===t)return;n.binding.unsubscribeFromTriggeringProperties()}n.binding=new Binding(t,n.onBindingBecameDirty)}else{if(n.binding&&(n.binding.unsubscribeFromTriggeringProperties(),n.binding=undefined),n.onAssign){i=Reaction.beginDeferred();n.onAssign(n.value,t);i.end()}if(n.value===t)return;n.value=t}i=Reaction.beginDeferred();n.makeDependentReactionsDirty();i.end()};n.attach=function(t,i){n.name=i;n.object=t;let r={get:function(){return n.getValue()},set:function(t){n.setValue(t)}};return Object.defineProperty(t,i,r),t["__"+i]=n,n}}function OnChanged(n,t){let i=undefined;return new Reaction(()=>{let r=n();if(r!=i){let n=Reaction.beginNonReactive();t(i,r);n.end();i=r}})}function OnTruthify(n,t){let i=undefined;return new Reaction(()=>{let r=n();if(r===!0&&!i==!0){let n=Reaction.beginNonReactive();t();n.end()}i=r})}function Entity(n){n.isEntity=!0;n.as=function(t){return n.is(t)?n:undefined};n.is=function(t){return n["is"+t]!=undefined}}function CreateLayer(n){function u(n){let i=n.binding!=undefined,r=i?n.binding.func:n.value,t=new Property;return t.name="Backup_"+n.name,t.object=n.object,t.setValue(r),t}function i(n,i){let r=t.get(i);if(r==undefined){if(!Property.exists(n,i))throw new Error(`Element does not have property "${i}"`);r=u(n.Reactive[i]);t.set(i,r)}return r}let t=new Map;let r=function(){let i=Reaction.beginDeferred();t.forEach(function(t,i){let r=t.binding?t.binding.func:t.value;n[i]=r});t.clear();i.end()};r.element=n;let f=new Proxy(r,{get(n,t){var r=i(n.element,t);return r.getValue()},set(n,t,r){var u=i(n.element,t);return n.element[t]=r,!0}});n.Layer=f}function ClearLayer(n){if(n.Layer&&n.Layer.backupProperties){let t=Reaction.beginDeferred();n.Layer.backupProperties.forEach(function(t,i){let r=t.binding?t.binding.func:t.value;n[i]=r});n.Layer.backupProperties.clear();t.end()}}function GetParentElementByPredicate(n,t){for(var i=n;i!=undefined;){if(t(i))return i;i=i.parentElement}return undefined}function SyncChildren(n,t){let i=[...n.children];t=[...t];for(let r=0;r<i.length;r++){let u=i[r];t.includes(u)||n.removeChild(u)}for(let i=0;i<t.length;i++){let r=t[i];n.children[i]!=r&&n.insertBefore(r,n.children[i])}}function Hierarchical(n){Entity(n);n.isHierarchical=!0;CreateCollectionSocket(n,"UnmanagedChildren",n);CreateSocket(n,"NextSibling",()=>n.Parent);CreateLayer(n);n.Reactive={Exists:!0,Root:()=>n.Parent.Root,Parent:undefined}}function DomLinkedList(n){this.firstChildProperty=n;Enumerable.call(this,function*(){for(var t=n.getValue();t!=undefined;)yield t,t=t.NextSibling})}function Color(){let n=[...arguments],t=this;if(t.r=0,t.g=0,t.b=0,t.a=undefined,n.length!=0){if(n.length==1){let u=n[0];if(typeof u=="number"){t.b=(u&255)/255;t.g=((u&65280)>>>8)/255;t.r=((u&16711680)>>>16)/255;t.a=((u&4278190080)>>>24)/255;return}if(typeof u=="string"&&u.substr(0,1)=="#"){var i=(u.length-1)/3,r=[17,1,.062272][i-1]/255;t.r=parseInt(u.substr(1,i),16)*r;t.g=parseInt(u.substr(1+i,i),16)*r;t.b=parseInt(u.substr(1+2*i,i),16)*r;return}console.warn("Color: Invalid arguments",u)}if(n.length>=3&n.length<=4){if(n.slice(0,3).some(n=>typeof n!="number")){console.warn("Color: Invalid arguments types",n);return}if(t.r=n[0],t.g=n[1],t.b=n[2],n[3]!=undefined){if(typeof n[3]!="number"){console.warn("Color: Invalid arguments types",n);return}t.a=n[3]}return}console.warn("Color: Invalid arguments",n)}}function BaseModifier(n){Hierarchical(n);n.isModifier=!0;let t=n.as;n.as=function(i){let r=t(i);if(r!=undefined)return r;if(n.Modifiers!=undefined){let t=n.as;n.as=()=>undefined;r=n.Modifiers.find(n=>n.is(i));n.as=t}return r};n.Modifiers=undefined;n.Reactive={Hover:!1,Selectable:undefined,BackgroundColor:undefined,HierarchyBackgroundColor:()=>n.BackgroundColor||n.Parent.HierarchyBackgroundColor,ForegroundColor:()=>n.BackgroundColor!=undefined?n.BackgroundColor.ContrastColor():undefined,HierarchyForegroundColor:()=>{let t=n.ForegroundColor;if(t)return t;let i=n.Parent;return i&&(t=i.HierarchyForegroundColor,t)?t:new Color(0)},TextDecorationColor:()=>n.ForegroundColor!=undefined?n.ForegroundColor:undefined,FontSize:undefined,HierarchyFontSize:()=>n.FontSize||n.Parent.HierarchyFontSize,Radius:undefined,RadiusTopLeft:()=>n.Radius,RadiusTopRight:()=>n.Radius,RadiusBottomLeft:()=>n.Radius,RadiusBottomRight:()=>n.Radius,Visibility:1};new Reaction(()=>{let t=n.Visibility;t==0?(n.style.visibility="hidden",n.style.opacity=""):t==1?(n.style.visibility="",n.style.opacity=""):(n.style.opacity=t,n.style.visibility="")});new Reaction(()=>{n.style.borderTopLeftRadius=ToCssSize(n.RadiusTopLeft),n.style.borderTopRightRadius=ToCssSize(n.RadiusTopRight),n.style.borderBottomLeftRadius=ToCssSize(n.RadiusBottomLeft),n.style.borderBottomRightRadius=ToCssSize(n.RadiusBottomRight)});new Reaction(()=>{let t=n.Selectable;n.style.userSelect=t!=undefined?n.Selectable?"text":"none":""});new Reaction(()=>{n.style.backgroundColor=ToCssValue(n.BackgroundColor)});new Reaction(()=>{n.style.color=ToCssValue(n.ForegroundColor)});new Reaction(()=>{n.style.textDecorationColor=ToCssValue(n.TextDecorationColor)})}function Page(n){function i(){return t.clientWidth}function r(){return t.clientHeight}function e(n){let t=window.matchMedia(`screen and (resolution: ${window.devicePixelRatio}dppx)`);t.addEventListener("change",()=>{n(),e(n)},{once:!0})}n.classList.add("js");n.isRoot=!0;Block(n);var t=document.body.parentNode;let u=0;window.Reactive={Root:n,AnimationFrame:()=>(u++,window.requestAnimationFrame(()=>{window.Reactive.AnimationFrame.makeDirty()}),u),UserInteracted:!1,DevicePixelRatio:window.devicePixelRatio,Touch:!1};let f=window.matchMedia("(pointer: coarse)");window.Touch=f.matches;f.onchange=n=>{window.Touch=n.matches};e(()=>window.DevicePixelRatio=window.devicePixelRatio);n.Reactive={Root:n,FontSize:16,HierarchyFontSize:()=>n.FontSize,BackgroundColor:new Color("#fff"),HierarchyBackgroundColor:()=>n.BackgroundColor,HierarchyForegroundColor:()=>n.ForegroundColor};let o=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){yield*o;n.svgDefs&&(yield n.svgDefs);n.extras&&(yield n.extras)});new Reaction(()=>{n.Width=i(),n.Height=r()});window.onmousedown=()=>{window.UserInteracted=!0};window.onresize=function(){let t=Reaction.beginDeferred();n.Width=i();n.Height=r();t.end()}}function CalcOffset(n,t,i){let u="Padding"+i,r="Margin"+i;return n[u]!=undefined?Math.max(n[u],t[r]||0):n[r]==undefined?t[r]||0:t[r]==undefined?0:Math.max(t[r]-n[r],0)}function GetClipRect(n,t,i,r,u){let e=-t,o=-i,s=-n.Width+r+t,h=-n.Height+u+i,c=`${o}px ${s}px ${h}px ${e}px`,f="";return(n.RadiusTopLeft!=undefined||n.RadiusTopRight!=undefined||n.RadiusBottomLeft!=undefined||n.RadiusBottomRight!=undefined)&&(f=` round ${n.RadiusTopLeft||0}px ${n.RadiusTopRight||0}px ${n.RadiusBottomRight||0}px ${n.RadiusBottomLeft||0}px`),`inset(${c}${f})`}function Block(n){BaseModifier(n);n.isBlock=!0;n.Reactive={Depth:0,PaddingLeft:undefined,PaddingTop:undefined,PaddingRight:undefined,PaddingBottom:undefined,MarginLeft:undefined,MarginTop:undefined,MarginRight:undefined,MarginBottom:undefined,X:0,Y:0,AbsoluteX:()=>{let t=n.Parent;return t?Num.Sum(n.Parent.AbsoluteX,n.Parent.ScrollX,n.X):0},AbsoluteY:()=>{let t=n.Parent;return t?Num.Sum(n.Parent.AbsoluteY,-n.Parent.ScrollY,n.Y):0},Width:undefined,Height:undefined,ClipByParent:!1};DepthToStyle(n);XToStyle(n);YToStyle(n);WidthToStyle(n);HeightToStyle(n);new Reaction(()=>{n.style.clipPath=n.ClipByParent&&n.Parent?GetClipRect(n.Parent,n.X,n.Y,n.Width,n.Height):""});new Reaction(()=>{n.style.fontSize=ToCssSize(n.FontSize)});n.Events.MouseEnter=()=>n.Hover=!0;n.Events.MouseLeave=()=>n.Hover=!1;n.HtmlNodesOrdered=new Enumerable(function*(){yield*n.ExistingUnmanagedChildren});new Reaction(()=>{let t=[...n.HtmlNodesOrdered];SyncChildren(n,t)})}function AspectBlock(n){Block(n);n.Reactive={NativeWidth:undefined,NativeHeight:undefined,NativeAspect:n=>n.NativeWidth/n.NativeHeight,Aspect:n=>n.NativeAspect,Width:()=>Num.First(n.Height*n.Aspect,n.NativeWidth),Height:()=>Num.First(n.Width/n.Aspect,n.NativeHeight),Fit:"Inside",GravityVertical:0,GravityHorizontal:0};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.content;yield*n.UnmanagedChildren});new Reaction(()=>{let t=n.content;if(n.Fit=="Stretch")t.style.width="100%",t.style.height="100%";else{let s=n.Width/n.Height,f=0,e=0,i=n.Width,r=n.Height,u=n.Fit=="Inside"?1:-1,o=n.NativeAspect;u*s<u*o?(r=i/o,e=(n.Height-r)*(.5*u*n.GravityVertical+.5)):(i=r*o,f=(n.Width-i)*(.5*u*n.GravityHorizontal+.5));t.style.top=ToCssSize(e);t.style.left=ToCssSize(f);t.style.width=ToCssSize(i);t.style.height=ToCssSize(r);t.style.clipPath=GetClipRect(n,f,e,i,r)}})}function SvgIcon(n){n.Reactive={StrokeColor:undefined,StrokeWidth:undefined};new Reaction(()=>{n.children[0].style.fill=n.HierarchyForegroundColor});new Reaction(()=>{n.StrokeColor!=undefined&&(n.children[0].style.stroke=n.StrokeColor)});new Reaction(()=>{n.StrokeWidth!=undefined&&(n.children[0].style.strokeWidth=ToCssSize(n.StrokeWidth))})}function SvgIconBlock(n){AspectBlock(n);SvgIcon(n);n.Reactive={};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.content;yield*n.UnmanagedChildren})}function Modifier(n){Entity(this);this.isModifier=!0;let t=this,i=this.as;this.as=function(t){let r=i(t);if(r!=undefined)return r;let u=this.as;return this.as=()=>undefined,r=as(n,t),this.as=u,r};t.Reactive={Enabled:!0}}function Button(n){Modifier.call(this,n);this.isButton=!0;let t=this;t.Reactive={EventPropagation:!1};n.addEventListener("click",()=>{t.Script(t),t.EventPropagation||event.stopPropagation()},!1)}function Cursor(n){Modifier.call(this,n);this.isCursor=!0;let t=this;t.Reactive={Option:"Pointer"};new Reaction(()=>{var i=t.Option;n.style.cursor=i===undefined||i===""?"":CamelToKebab(i)})}function Hover(n){Modifier.call(this,n);this.isHover=!0;let t=this;t.Reactive={Value:!1};new Reaction(()=>{n.Exists||(t.Value=!1)});n.addEventListener("mouseenter",()=>t.Value=!0,!1);n.addEventListener("mouseleave",()=>t.Value=!1,!1)}function BorderRadius(n){Modifier.call(this,n);this.isBorderRadius=!0;let t=this;t.Reactive={Radius:undefined,RadiusTopLeft:n=>n.Radius,RadiusTopRight:n=>n.Radius,RadiusBottomLeft:n=>n.Radius,RadiusBottomRight:n=>n.Radius};new Reaction(()=>{n.style.borderTopLeftRadius=ToCssSize(t.RadiusTopLeft),n.style.borderTopRightRadius=ToCssSize(t.RadiusTopRight),n.style.borderBottomLeftRadius=ToCssSize(t.RadiusBottomLeft),n.style.borderBottomRightRadius=ToCssSize(t.RadiusBottomRight)})}function Thumb(n){Block(n);n.Reactive={BackgroundColor:()=>n.Parent.HierarchyForegroundColor,Radius:()=>Num.Min(n.Width,n.Height)/2,Depth:1,Visibility:()=>window.Touch||n.ThumbSizeScale>=1?0:n.Hover?.5:.25}}function SetupPointerDrag(n,t){n.Events.PointerDown=()=>(event.stopPropagation(),event.preventDefault(),n.setPointerCapture(event.pointerId),n.Events.PointerMove=()=>{let n=event.movementX,i=event.movementY;(n!=0||i!=0)&&t(n,i)},n.Events.PointerUp=()=>{n.Events.PointerUp=undefined,n.Events.PointerMove=undefined},!1)}function ScrollLayout(n){Block(n);n.isScrollLayout=!0;var u=undefined;let t=document.createElement("scrollable");t.style.touchAction="manipulation";t.style.overflow="auto";t.Events.Scroll=()=>{if(u!="Property"){u="Event";let i=Reaction.beginDeferred();n.ScrollX=t.scrollLeft;n.ScrollY=t.scrollTop;i.end();u=undefined}};n.Reactive={InternalWidth:()=>Num.Sum(n.Child.Layer.Width,n.LeftOffset,n.RightOffset),InternalHeight:()=>Num.Sum(n.Child.Layer.Height,n.TopOffset,n.BottomOffset),Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,LeftOffset:()=>CalcOffset(n,n.Child,"Left"),RightOffset:()=>CalcOffset(n,n.Child,"Right"),TopOffset:()=>CalcOffset(n,n.Child,"Top"),BottomOffset:()=>CalcOffset(n,n.Child,"Bottom"),ChildAreaWidth:()=>n.Width-n.LeftOffset-n.RightOffset,ChildAreaHeight:()=>n.Height-n.TopOffset-n.BottomOffset,ScrollX:undefined,ScrollY:undefined,ScrollBarThickness:4,ScrollBarMargin:2,ShowScrollBars:()=>!window.Touch};CreateSocket(n,"Child",n);CreateSocket(n,"VerticalThumb",n).setValue(Create(n,Thumb));CreateSocket(n,"HorizontalThumb",n).setValue(Create(n,Thumb));let i=n.VerticalThumb;i.Reactive={ThumbTravel:()=>n.Height-2*n.ScrollBarMargin,ThumbPositionScale:()=>i.ThumbTravel/n.Child.Layer.Height,ThumbSizeScale:()=>n.ChildAreaHeight/n.Child.Layer.Height,X:()=>n.Width-i.Width-n.ScrollBarMargin,Y:()=>n.ScrollBarMargin+n.ScrollY*i.ThumbPositionScale,Width:()=>n.ScrollBarThickness,Height:()=>i.ThumbTravel*i.ThumbSizeScale};let r=n.HorizontalThumb;r.Reactive={ThumbTravel:()=>n.Width-2*n.ScrollBarMargin,ThumbPositionScale:()=>r.ThumbTravel/n.Child.Width,ThumbSizeScale:()=>n.ChildAreaWidth/n.Child.Width,X:()=>n.ScrollBarMargin+n.ScrollX*r.ThumbPositionScale,Y:()=>n.Height-r.Height-n.ScrollBarMargin,Width:()=>r.ThumbTravel*r.ThumbSizeScale,Height:()=>n.ScrollBarThickness};n.HtmlNodesOrdered=new Enumerable(function*(){yield i;yield r;yield t;yield*n.UnmanagedChildren});new Reaction(()=>{SyncChildren(t,[n.Child])});SetupPointerDrag(i,(n,r)=>{t.scrollTop+=r/i.ThumbPositionScale});SetupPointerDrag(r,n=>{t.scrollLeft+=n/r.ThumbPositionScale});new Reaction(()=>{n.Child.Layer.Width=Math.max(n.Child.Layer.Width,n.ChildAreaWidth),n.Child.Layer.Height=Math.max(n.Child.Layer.Height,n.ChildAreaHeight)});new Reaction(()=>{t.style.left=ToCssSize(n.LeftOffset),t.style.top=ToCssSize(n.TopOffset),t.style.width=ToCssSize(n.ChildAreaWidth),t.style.height=ToCssSize(n.ChildAreaHeight)});new Reaction(()=>{(n.ScrollY,n.ScrollX,u!="Event")&&(u="Property",window.requestAnimationFrame(()=>{t.scrollTop=n.ScrollY,t.scrollLeft=n.ScrollX,u=undefined}))})}function SessionStorage(n){Modifier.call(this,n);this.isSessionStorage=!0;let t=this;t.Reactive={StoredValue:undefined,ValueToStore:undefined};new Reaction(()=>{sessionStorage.setItem(t.name,t.ValueToStore)})}function BlockWithChildren(n){Block(n);CreateCollectionSocket(n,"Children",n);let t=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){yield*t;yield*n.ExistingChildren})}function LayoutPropertiesNames(n){this.side=[n?"Top":"Left",n?"Bottom":"Right"];this.cordinate=n?"Y":"X";this.dimension=n?"Height":"Width"}function LayoutBorder(n,t,i=0,r=0){this.layoutPrpertiesNames=t;this.sideIndex=n;this.oppositeSideIndex=(n+1)%2;this.marginStop=i;this.bodyStop=r}function LinearLayoutRegion(n){let t=new LayoutPropertiesNames(n);this.vertical=n;this.border=[new LayoutBorder(0,t),new LayoutBorder(1,t),]}function LinearLayout(n){BlockWithChildren(n);n.isLinearLayout=!0;n.Reactive={Vertical:!0,ItemGrow:1,Gap:0,GapGrow:0,PrimaryGravity:undefined,SecondaryGravity:undefined,Reverse:!1,OrderedChildren:n=>n.Reverse?n.ExistingChildren.Reverse().ToArray():n.ExistingChildren.ToArray(),InternalSecondarySize:t=>{var i=new LayoutPropertiesNames(!n.Vertical);let r=Num.Sum(t["Padding"+i.side[0]],t["Padding"+i.side[1]],0);for(let n of t.OrderedChildren){let u=CalcOffset(t,n,i.side[0]),f=CalcOffset(t,n,i.side[1]),e=Num.Sum(n.Layer[i.dimension],u+f);r=Num.Max(r,e)}return r},InternalPrimarySize:n=>{let t=LinearLayoutRegion.formContainer(n,n.Vertical),i=n.Gap;for(const[r,u]of n.OrderedChildren.entries())r>0&&t.border[0].ShiftByPixels(i),t.border[0].Shift(u);return t.GetSize()},InternalWidth:n=>n.Vertical?n.InternalSecondarySize:n.InternalPrimarySize,InternalHeight:n=>n.Vertical?n.InternalPrimarySize:n.InternalSecondarySize,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,PrimarySize:n=>n.Vertical?n.Height:n.Width,SecondarySize:n=>n.Vertical?n.Width:n.Height};new Reaction(()=>{var i=n.SecondarySize,t;if(i!=undefined)if(t=new LayoutPropertiesNames(!n.Vertical),n.SecondaryGravity==undefined)for(let r of n.OrderedChildren){let u=CalcOffset(n,r,t.side[0]),f=CalcOffset(n,r,t.side[1]),e=i-u-f;r.Layer[t.cordinate]=u;r.Layer[t.dimension]=e}else for(let r of n.OrderedChildren){let u=CalcOffset(n,r,t.side[0]),s=CalcOffset(n,r,t.side[1]),f=r.Layer[t.dimension],e=i-u-s,o=e-f;o>0?u+=(.5*n.SecondaryGravity+.5)*o:f=e;r.Layer[t.cordinate]=u;r.Layer[t.dimension]=f}});new Reaction(()=>{if(n.PrimarySize!=undefined){let r=n.OrderedChildren;var t=new LayoutPropertiesNames(n.Vertical);let i=LinearLayoutRegion.formContainer(n,n.Vertical),u=n.Gap;if(n.InternalPrimarySize>n.PrimarySize){let f=n.PrimarySize/n.InternalPrimarySize;for(const[e,n]of r.entries()){e>0&&i.border[0].ShiftByPixels(u*f);let r=n.Layer[t.dimension],o=i.border[0].Shift(n,r);n.Layer[t.cordinate]=o*f;n.Layer[t.dimension]=r*f}}else{let f=0,e=0,h=n.PrimarySize-n.InternalPrimarySize,o=0,s=0;if(n.PrimaryGravity==undefined)f=n.ItemGrow,e=n.GapGrow,o=f*r.length+e*(r.length-1),s=o!=0?h/o:0;else{let t=(.5*n.PrimaryGravity+.5)*h;i.border[0].ShiftByPixels(t)}for(const[o,n]of r.entries()){o>0&&i.border[0].ShiftByPixels(u+e*s);let r=n.Layer[t.dimension]||0;r=r+f*s;let h=i.border[0].Shift(n,r);n.Layer[t.cordinate]=h;n.Layer[t.dimension]=r}}}})}function MenuResponsive(n){BlockWithChildren(n);n.isMenuResponsive=!0;CreateSocket(n,"Logo",n);CreateSocket(n,"Button",n);CreateSocket(n,"Dropdown",n);n.Reactive={PrimaryGravity:1,SecondaryGravity:0,DropdownExpanded:n=>n.Button.as("Toggle").Value,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,InternalHeight:n=>{var t=new LayoutPropertiesNames(!0);let i=Num.Sum(n["Padding"+t.side[0]],n["Padding"+t.side[1]]),u=n.Children.ToArray(),f=n.Dropdown.Children.ToArray(),r=u.concat(f);n.Logo&&r.push(n.Logo);for(let u of r){let r=CalcOffset(n,u,t.side[0]),f=CalcOffset(n,u,t.side[1]),e=Num.Sum(u.Layer[t.dimension],r+f);i=Num.Max(i,e)}return i},InternalWidth:n=>{let t=LinearLayoutRegion.formContainer(n,!1),i=[...n.Children],r=[...n.Dropdown.Children],u=i.concat(r);n.Logo&&t.border[0].Shift(n.Logo);for(let n of u)t.border[0].Shift(n);return t.GetSize()}};let r=n.HtmlNodesOrdered;n.HtmlNodesOrdered=new Enumerable(function*(){let t=n.Logo;t&&t.Exists&&(yield t);let i=n.Button;i.Exists&&(yield i);let u=n.Dropdown;u.Exists&&(yield u);yield*r});let i=function(t,i){let u=[],r=LinearLayoutRegion.formContainer(n,!1);if(i){let t=r.border[1].Shift(n.Button),i=n.Width-n.Button.Layer.Width-t;n.Button.Layer.X=i}n.Logo&&(n.Logo.Layer.X=r.border[0].Shift(n.Logo));let f=n.Width-r.GetSize();for(const[i,e]of t.entries()){let t=r.border[0].Shift(e);if(r.GetSize()>n.Width)break;f=n.Width-r.GetSize();u[i]=t}return{menuItemsPositions:u,extraPixels:f}};new Reaction(()=>{let r=[...n.Children],e=[...n.Dropdown.Children],u=r.concat(e),{menuItemsPositions:t,extraPixels:f}=i(u,!1);if(t.length<u.length&&({menuItemsPositions:t,extraPixels:f}=i(u,!0)),t.length<r.length){let i=n.Children.RemoveRange(t.length,r.length-t.length);n.Dropdown.Children.InsertRange(0,i)}else if(t.length>r.length){let i=n.Dropdown.Children.RemoveRange(0,t.length-r.length);n.Children.InsertRange(r.length,i)}let o=f*(.5*n.PrimaryGravity+.5);for(const[n,i]of t.entries())u[n].Layer.X=i+o});let t=function(t){let i=LinearLayoutRegion.formContainer(n,!0),r=i.border[0].Shift(t);i=LinearLayoutRegion.formContainer(n,!0);let u=i.border[1].Shift(t),f=n.Height-t.Height-u;return((n.SecondaryGravity+1)*f+(1-n.SecondaryGravity)*r)/2};new Reaction(()=>{n.Logo&&(n.Logo.Layer.Y=t(n.Logo));let i=t(n.Button);n.Button.Layer.Y=i;for(let i of[...n.Children])i.Layer.Y=t(i)})}function Image(n){AspectBlock(n)}function Toggle(n){Modifier.call(this,n);this.isToggle=!0;let t=this;t.Reactive={Value:!1};n.addEventListener("click",()=>{t.Value=!t.Value},!1)}function Paragraph(n){Block(n);n.Reactive={Selectable:!0,InternalWidth:()=>Num.Sum(n.MaxContentWidth,n.PaddingLeft,n.PaddingRight),InternalHeight:undefined,Width:n=>n.InternalWidth,Height:n=>n.InternalHeight,MaxContentWidth:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.maxWidth,MinContentWidth:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.minWidth,MaxContentHeight:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.maxHeight,MinContentHeight:n=>n.HierarchyFontSize/Paragraph.testFontSize*n.inlineContainer.minHeight,PaddingLeft:()=>n.BackgroundColor!=undefined?10:undefined,PaddingRight:()=>n.BackgroundColor!=undefined?10:undefined,PaddingTop:()=>n.BackgroundColor!=undefined?8:undefined,PaddingBottom:()=>n.BackgroundColor!=undefined?8:undefined,MarginLeft:()=>n.BackgroundColor!=undefined?0:10,MarginRight:()=>n.BackgroundColor!=undefined?0:10,MarginTop:()=>n.BackgroundColor!=undefined?0:8,MarginBottom:()=>n.BackgroundColor!=undefined?0:8};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.inlineContainer;yield*n.UnmanagedChildren});new Reaction(()=>{let t=n.inlineContainer;n.TextAlignmentHorizontal=="JustifyIncludingLastLine"?(t.style.textAlign="justify",t.style.textAlignLast="justify"):(t.style.textAlignLast="",t.style.textAlign=n.TextAlignmentHorizontal===undefined?"":n.TextAlignmentHorizontal.toLowerCase())});new Reaction(()=>{if(n.Width!=undefined){n.style.width=ToCssSize(n.Width);let t=n.inlineContainer;t.style.transformOrigin="";t.style.transform="";t.style.width="";t.style.display="";t.style.left=ToCssSize(n.PaddingLeft);t.style.top=ToCssSize(n.PaddingTop);let r=Num.Sum(n.MinContentWidth,n.PaddingLeft,n.PaddingRight);if(n.Width<r){let i=Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight)/n.MinContentWidth;i>0?(t.style.width="min-content",t.style.transformOrigin="top left",t.style.transform=`scale(${i}, ${i})`,n.InternalHeight=Num.Sum(n.MaxContentHeight*i,n.PaddingTop,n.PaddingBottom)):(t.style.display="none",n.InternalHeight=Num.Sum(n.PaddingTop,n.PaddingBottom));return}let u=Num.Sum(n.MaxContentWidth,n.PaddingLeft,n.PaddingRight),i=n.Width-u;if(i>-.001){let r=Num.Sum(n.MinContentHeight,n.PaddingTop,n.PaddingBottom);n.InternalHeight=r;t.style.width=i>.001?ToCssSize(Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight)):"max-content";return}t.style.width=ToCssSize(Num.Sum(n.Width,-n.PaddingLeft,-n.PaddingRight));var f=t.getBoundingClientRect();n.InternalHeight=Num.Sum(f.height,n.PaddingTop,n.PaddingBottom)}});HeightToStyle(n)}function AbstractInline(n){BaseModifier(n)}function LayoutOverride(n){Block(n);n.isLayoutOverride=!0;CreateSocket(n,"Child",n);n.Reactive={Width:()=>n.Child.Layer.Width,Height:()=>n.Child.Layer.Height,MarginTop:()=>n.Child.Layer.MarginTop,MarginBottom:()=>n.Child.Layer.MarginBottom,MarginLeft:()=>n.Child.Layer.MarginLeft,MarginRight:()=>n.Child.Layer.MarginRight,Child:undefined,OverrideX:undefined,OverrideY:undefined,OverrideWidth:undefined,OverrideHeight:undefined};n.HtmlNodesOrdered=new Enumerable(function*(){yield n.Child;yield*n.UnmanagedChildren});new Reaction(()=>{n.Child.Layer.X=n.OverrideX!=undefined?n.OverrideX-n.X:0,n.Child.Layer.Y=n.OverrideY!=undefined?n.OverrideY-n.Y:0,n.Child.Layer.Width=n.OverrideWidth||n.Width,n.Child.Layer.Height=n.OverrideHeight||n.Height})}function Id(n){Modifier.call(this,n);this.isId=!0;let t=this;t.Reactive={Value:undefined};new Reaction(()=>{var i=t.Value||"";n.id=i})}var Num={},Animation,currentSocket,parentStack,parentGetDepth,Storage;Num.IsNaNOrNull=function(n){return n===null?!0:isNaN(n)};Num.Max=function(){let n=undefined;for(let t of arguments)Num.IsNaNOrNull(t)||(n=n===undefined?t:Math.max(n,t));return n};Num.Min=function(){let n=undefined;for(let t of arguments)Num.IsNaNOrNull(t)||(n=n===undefined?t:Math.min(n,t));return n};Num.Clamp=function(n,t,i){return Num.Max(t,Num.Min(i,n))};Num.Sum=function(){let n=!1,t=0;for(let i of arguments)Num.IsNaNOrNull(i)||(n=!0,t+=i);return n?t:undefined};Num.First=function(){for(let n of arguments)if(n!==undefined&&!isNaN(n)&&n!==null)return n;return undefined};Num.PiecewiseLinearInterpolation=function(n,...t){if(n==undefined)return undefined;if(t.length===0)throw new Error("Keyframes list must not be empty.");if(t.length===1||(t.sort((n,t)=>n[0]-t[0]),n<t[0][0]))return t[0][1];if(n>=t[t.length-1][0])return t[t.length-1][1];for(let i=1;i<t.length;i++)if(n<t[i][0]){const r=t[i][0]-t[i-1][0],u=(n-t[i-1][0])/r,f=t[i][1]-t[i-1][1];return t[i-1][1]+f*u}throw new Error("Keyframes are not sorted correctly.");};Enumerable.Empty=function(){return new Enumerable(function*(){})};Enumerable.prototype.ToArray=function(){return[...this]};Enumerable.Range=function(n,t){return new Enumerable(function*(){for(let i=n;i<n+t;i++)yield i})};Enumerable.FromArguments=function(){return new Enumerable(arguments)};Enumerable.prototype.Where=function(n){let t=this,i=function*(){for(let i of t)n(i)&&(yield i)};return new Enumerable(i)};Enumerable.prototype.Select=function(n){let t=this,i=function*(){for(let i of t)yield n(i)};return new Enumerable(i)};Enumerable.prototype.First=function(n=()=>true,t=()=>{throw new Error("Out of range");}){let r=this,u=r[Symbol.iterator]();for(;;){var i=u.next();if(i.done)return t();if(n(i.value))return i.value}};Enumerable.prototype.Last=function(n=()=>true){let t=[...this];if(t.length>0)for(let i=t.length-1;i>=0;i--)if(n(t[i]))return t[i]};Enumerable.prototype.Count=function(n){let t=[...this];if(n===undefined)return t.length;let i=0;for(let r=0;r<t.length;r++)n(t[r])&&i++;return i};Enumerable.prototype.Any=function(n=()=>true){var t;let r=this,i=r[Symbol.iterator]();if(n===undefined)return t=i.next(),!t.done;for(;;){if(t=i.next(),t.done)return!1;if(n(t.value))return!0}};Enumerable.prototype.Aggregate=function(n,t){let i=[...this],r=0;if(arguments.length==1){if(i.length==0)return undefined;r=1;t=i[0]}for(let u=r;u<i.length;u++)t=n(t,i[u]);return t};Enumerable.prototype.Max=function(){return this.Aggregate((n,t)=>n>t?n:t)};Enumerable.prototype.Min=function(){return this.Aggregate((n,t)=>n<t?n:t)};Enumerable.prototype.Sum=function(){return this.Aggregate((n,t)=>n+t)};Enumerable.prototype.Order=function(n=(n,t)=>n==t?0:(n<t?-1:1)){let t=[...this];return t.sort(n),new Enumerable(t)};Enumerable.prototype.OrderBy=function(n,t=function(t,i){let r=n(t);let u=n(i);return r==u?0:r<u?-1:1}){return this.Order(t)};Enumerable.prototype.Reverse=function(){let n=[...this],t=function*(){for(let t=n.length-1;t>=0;t--)yield n[t]};return new Enumerable(t)};Enumerable.prototype.Skip=function(n){let t=this,i=function*(){for(let i of t)n>0?n--:yield i};return new Enumerable(i)};Enumerable.prototype.Take=function(n){let t=this,i=function*(){for(let i of t)if(n>0)yield i,n--;else break};return new Enumerable(i)};Animation={};Animation.Duration=function(n,t){function u(n,t,i){return n+i*(t-n)}let i=n*1e3;if(this.startValue==undefined)return this.startTime=performance.now(),this.startValue=t,this.targetValue=t,this.currentValue=t,t;t!=this.targetValue&&(this.startTime=performance.now(),this.startValue=this.currentValue,this.targetValue=t);let r=performance.now()-this.startTime;r<i&&window.AnimationFrame;let f=Math.min(r/i,1);return this.currentValue=u(this.startValue,this.targetValue,f),this.currentValue};Animation.SpeedLimit=function(n,t){if(this.currentValue==undefined)return this.currentValue=t,t;if(this.currentValue!=t){let i=performance.now();if(this.currentValueTime==undefined)this.currentValueTime=i;else{let u=(i-this.currentValueTime)*.001;this.currentValueTime=i;let f=t-this.currentValue,r=u*n;this.currentValue=Math.sign(f)>0?Math.min(this.currentValue+r,t):Math.max(this.currentValue-r,t)}this.currentValue!=t?window.AnimationFrame:this.currentValueTime=undefined}return this.currentValue};currentSocket=undefined;parentStack=[];Reaction.prototype=Object.create(ReactionBase.prototype);Reaction.prototype.constructor=Reaction;Reaction.beginDeferred=function(){return Reaction.deferred?{end:function(){}}:(Reaction.deferred=new Set,{end:function(){let n=64;while(Reaction.deferred.size>0&n>0){let t=Array.from(Reaction.deferred);for(let n of t){Reaction.deferred.delete(n);try{n.execute()}catch(i){console.warn(i)}}n--}n==0&&console.error("Recursive property binding",Reaction.deferred);Reaction.deferred=undefined}})};Reaction.beginNonReactive=function(){if(!Reaction.current){let n=Reaction.current;return Reaction.current=undefined,{end:function(){Reaction.current=n}}}return{end:function(){}}};Binding.prototype=Object.create(ReactionBase.prototype);Binding.prototype.constructor=Binding;Property.exists=function(n,t){var i=!!Object.getOwnPropertyDescriptor(n,t),r=n.hasOwnProperty("__"+t);return i&&r};Property.nameAvailable=function(n,t){return Object.getOwnPropertyDescriptor(n,t)?!1:n.hasOwnProperty(t)?!1:!0};Object.defineProperty(Object.prototype,"Reactive",{get:function(){return new Proxy(this,{get(n,t){return n["__"+t]},set:function(n,t,i){if(n.hasOwnProperty("__"+t)){const r=n["__"+t];r.setValue(i)}else{let r=new Property;r.setValue(i);r.attach(n,t)}}})},set:function(n){let t=this.Reactive,i=Reaction.beginDeferred();if(n instanceof Object)for(const[i,r]of Object.entries(n))t[i]=r;i.end()}});Object.defineProperty(Object.prototype,"Events",{get:function(){const n="___";return new Proxy(this,{get(t,i){return t[n+i]},set:function(t,i,r){function u(r){t[n+i]=r;t.addEventListener(i,r.handler,r)}if(i=i.toLowerCase(),t.hasOwnProperty(n+i)){let r=t[n+i];r!==undefined&&t.removeEventListener(i,r.handler)}r!==undefined&&(typeof r=="function"?u({handler:r,capture:!1}):typeof r=="object"?(typeof r.handler!="function"&&console.error("If the value is an object, it must have a 'handler' field of type 'function'"),r.capture=!1,u(r)):console.warn(`Type '${typeof r}' is invalid for event. To remove event handler assign 'undefined'`))}})}});parentGetDepth=1;Object.setPrototypeOf(DomLinkedList.prototype,Enumerable.prototype);DomLinkedList.prototype.InsertRange=function(n,t){if(n<0)throw new Error(`"startIndex" out of range : ${n}`);let i=this.firstChildProperty,r=0;while(r<n){if(!i.getValue())throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${count}`);r++;i=i.getValue().__NextSibling}var u=i.getValue();let f=Reaction.beginDeferred();i.setValue(t[0]);t[t.length-1].NextSibling=u;for(let[n,i]of t.entries())n<t.length-1&&(i.NextSibling=t[n+1]);f.end()};DomLinkedList.prototype.RemoveRange=function(n,t){if(t<1||n<0)throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${t}`);let i=this.firstChildProperty,u=i,r=undefined,f=[];for(let e=0;e<n+t;e++){if(!i.getValue())throw new Error(`Range to remove is out of collection range. "startIndex" : ${n}, "count" : ${t}`);e==n&&(u=i);e>=n&&f.push(i.getValue());e==n+t-1&&(r=i.getValue());i=i.getValue().__NextSibling}let e=Reaction.beginDeferred();return u.setValue(r.NextSibling),r.NextSibling=undefined,e.end(),f};DomLinkedList.prototype.Insert=function(n,t){this.InsertRange(n,[t])};DomLinkedList.prototype.RemoveAt=function(n){var t=this.RemoveRange(n,1);return t[0]};Color.prototype.toString=function(){let n=this.a||1;return`rgba(${Math.round(255*this.r)},${Math.round(255*this.g)},${Math.round(255*this.b)},${n})`};Color.CplusC=function(n,t){return new Color(n.r+t.r,n.g+t.g,n.b+t.b,n.a+t.a||n.a||t.a)};Color.CplusN=function(n,t){return new Color(n.r+t,n.g+t,n.b+t,n.a+t)};Color.NplusC=function(n,t){return new Color(n+t.r,n+t.g,n+t.b,n+t.a)};Color.CminusC=function(n,t){return new Color(n.r-t.r,n.g-t.g,n.b-t.b,n.a-t.a||n.a||t.a)};Color.CminusN=function(n,t){return new Color(n.r-t,n.g-t,n.b-t,n.a-t)};Color.NminusC=function(n,t){return new Color(n-t.r,n-t.g,n-t.b,n-t.a)};Color.CmulC=function(n,t){return new Color(n.r*t.r,n.g*t.g,n.b*t.b,n.a*t.a||n.a||t.a)};Color.CmulN=function(n,t){return new Color(n.r*t,n.g*t,n.b*t,n.a*t)};Color.NmulC=function(n,t){return new Color(n*t.r,n*t.g,n*t.b,n*t.a)};Color.FromGrayscale=function(n){return new Color(n,n,n)};Color.FromIntRGB=function(n){return new Color((n>>16&255)/255,(n>>8&255)/255,(n&255)/255)};Color.FromIntChannelsRGB=function(n,t,i){return new Color(n/255,t/255,i/255)};Color.FromIntChannelsRGBA=function(n,t,i,r){return new Color(n/255,t/255,i/255,r/255)};Color.Lerp=function(n,t,i){return n.Lerp(t,i)};Color.prototype.Lerp=function(n,t){var i=1-t,r=Num.First(this.a*i+n.a*t,this.a,n.a),u=this.r*i+n.r*t,f=this.g*i+n.g*t,e=this.b*i+n.b*t;return new Color(u,f,e,r)};Color.prototype.ContrastColor=function(n=1){var t=.2125*this.r+.7154*this.g+.0721*this.b,i=t>.5?new Color(0,0,0,1):new Color(1,1,1,1);return this.Lerp(i,n)};Storage={};Storage.Elements={};Storage.Restore=function(n,t){let r=sessionStorage,i=r.getItem(n);if(Storage.Elements[n]==undefined&&(Storage.Elements[n]=new Reaction(()=>{let i=t();r.setItem(n,typeof i+" "+i)})),i!=null){let r=i.indexOf(" "),n=i.substring(0,r),t=i.substring(r+1);if(n=="undefined")return undefined;if(n=="number")return Number(t);if(n=="boolean")return t==="true";if(n=="string")return t}else return undefined},function(){function u(){document.documentElement.style.visibility="hidden"}function f(){document.documentElement.style.visibility="visible"}function n(n,t){const i=new IntersectionObserver(n=>{t(n),i.disconnect()});for(const t of n)i.observe(t)}function e(t){const i=document.querySelectorAll(".inline-container");if(i.length==0){t();return}for(const n of i)n.style.fontSize=Paragraph.testFontSize+"px",n.style.width="min-content";n(i,r=>{for(const n of r){const t=n.boundingClientRect;n.target.minWidth=t.width;n.target.maxHeight=t.height}for(const n of i)n.style.width="max-content";n(i,n=>{for(const t of n){const n=t.boundingClientRect;t.target.maxWidth=n.width;t.target.minHeight=n.height}for(const n of i)n.style.width="",n.style.fontSize="";t()})})}function i(){if(t--,t==0){let n=performance.now();console.log("----readyToLayoutTime",n.toFixed(1));e(()=>{let t=performance.now();console.log("----inlineContainersMeasured",(t-n).toFixed(1));Initialize();let i=performance.now();console.log("----Initialize()",(i-t).toFixed(1));r.end();let u=performance.now();console.log("-----Reactions--",(u-i).toFixed(1));f();location.hash!==""&&window.requestAnimationFrame(()=>{location.href=location.hash})})}}let r=Reaction.beginDeferred();u();let t=2;document.fonts.ready.then(()=>{console.log("-------------Fonts ready--",performance.now().toFixed(1)),i()});window.addEventListener("DOMContentLoaded",function(){console.log("------DOMContentLoaded--",performance.now().toFixed(1));i()})}();LayoutBorder.prototype.ShiftMaxOf=function(n){let t=0,i=0;for(let r of n){let n=r["Margin"+this.layoutPrpertiesNames.side[this.sideIndex]]||0,u=r["Margin"+this.layoutPrpertiesNames.side[this.oppositeSideIndex]]||0,f=r.Layer[this.layoutPrpertiesNames.dimension]||0,e=Math.max(this.bodyStop,this.marginStop+n);t=Math.max(t,e+f);i=Math.max(i,this.marginStop+u)}this.marginStop=t;this.bodyStop=i};LayoutBorder.prototype.Shift=function(n,t=undefined){let r=n["Margin"+this.layoutPrpertiesNames.side[this.sideIndex]]||0,u=n["Margin"+this.layoutPrpertiesNames.side[this.oppositeSideIndex]]||0;t==undefined&&(t=n.Layer[this.layoutPrpertiesNames.dimension]||0);let i=Math.max(this.bodyStop,this.marginStop+r);return this.marginStop=i+t,this.bodyStop=this.marginStop+u,i};LayoutBorder.prototype.ShiftByPixels=function(n){this.marginStop+=n;this.bodyStop+=n};LinearLayoutRegion.prototype.GetSize=function(){return Math.max(this.border[0].marginStop+this.border[1].bodyStop,this.border[1].marginStop+this.border[0].bodyStop)};LinearLayoutRegion.formContainer=function(n,t){let i=new LinearLayoutRegion(t),r=new LayoutPropertiesNames(t),u=[n["Padding"+r.side[0]],n["Padding"+r.side[1]],];for(let t=0;t<2;t++)if(i.border[t].bodyStop=0,i.border[t].marginStop=0,u[t]!=undefined)i.border[t].bodyStop=u[t];else{let u=n["Margin"+r.side[t]];u!==undefined&&(i.border[t].marginStop=-u)}return i};Paragraph.testFontSize=18</script><style>html{display:initial;position:initial;overscroll-behavior-x:none;overflow:hidden;overflow-x:hidden;overflow-y:hidden}.js{position:absolute;overflow:hidden;overflow-x:hidden;overflow-y:hidden;white-space:normal;touch-action:none;margin:0}.js *{scrollbar-width:none}.js *::-webkit-scrollbar{display:none}head{display:none}body{line-height:1.5;tab-size:4}body *{touch-action:inherit;display:block;overflow-x:visible;overflow-y:visible;position:absolute;margin:0;visibility:inherit;margin-block-start:0;margin-block-end:0;margin-inline-start:0;margin-inline-end:0;line-height:inherit;text-decoration-line:inherit;text-decoration-color:inherit;color:inherit;justify-content:inherit;align-content:inherit;text-align:inherit;box-sizing:border-box;word-break:keep-all;white-space:inherit}.inline-container{white-space:break-spaces}.inline-container *{position:static;display:inline;vertical-align:baseline}.inline-container a{text-decoration-line:underline}</style><style>@font-face {font-family: 'Inter';font-weight: 700;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,d09GMgABAAAAAAUUABAAAAAACQQAAAS6AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbgVIcKAZgP1NUQVREAFQRCAqFcIRqCxQAATYCJAMkBCAFhBgHIAwHG1YHyAQCwNMuKQYog/EgOuIBse0LyP9cU7cG2vNK99u/67+IoCpsm09nEwq6jaqAyiakW8SzmOCMZy8CYIqQEBFYNHCvAWN8iELMqd2wJebF3apLURBlE+Zb0VGkqSzFMCRtayUihggpkZ6t1hpGKWoM0EKyzpU+T0nyx9j9psV88kVoTD5NmHV68FHMWatQokbBixjWBByqKIDR+OGntAbCACJjC4Mw8QCqPgM/9Tzguq9V3OaIoiSiUsw8qHyIKFuzVIZ+P81bNGrBEiRZNl7zry0YrxHXgLCYQ/UelZAwXSkcTgpsXYlPS++8/GrBAndVFZdWC5aHCAQGTbiJBygJJSQ4rNDzHTiUQH8KVNUWJRmXCONuUyKhoZhq+gJ6TqInxVTRR5bll/JCebY8VZ40OmsQuCrIMhZJNBJT1nA03GkcETo0QaXrUR28R1CDKI0TDpb+ymCltaltgaq/sp/o6UNeWzLu8W3F8DtPTMbrdJEmBmZ9TQXjLVpth/E3bghD9XrjcVotQ3S6vuMe3xaGNhl4pLsF/RRWFUJL9qDJ+Bs3ortptQ/79zXt37/rMsHFbW/VTadjiPah8YTHrXs0eazNMn3r7nq9MPTGE5OJj/qLlooOZn17/+S0Q7sV2pZavb5N/4Iis/wC08J806LCgnH6pA463Y02bfqZ9TXpb9ZHq9V6DWZGV5iRn+HP7n4k/afzwHGz844VXQXDtZ2dN60duqF14ZCDZuJaDFnx3fpB8YANzYyb500qb3h+7NgGZyeX5BVMrqh3duSo+hcmVRLX1f1dyyO7u395t1vT+PTjOequJ46W+JyoaWaJ4ZCOTSZOaNqp24y2LWbQ/k9ly5Xz2xXVqfFv0aTdWCe3iXuueVXjWxcMWYchtB9Rf6TD1MymhRH1e4xuXiu+TYNCe7v4B6F3zq+aveVJ1KAzkfn/3e8ss7PuOLVrZfmY1uQYdanfw8Yo5mHI7XsbZizR+VSd9G78jdRdZCzMuFq2DtWcZO+MDKdg932fs1J+VTk3F+eqnncafJJZSM9xcpQcdx6Qz8jbw6wDrfeclnfLbElvNsHxWpfU+vZ9FG2TXeo4Znj1Cjli8zTf0tY2/7hv61VB/aftedATeGMOKJT3vK9O3dnFIuWboYtJUfHu5/0udNO9Vk31Px7+HeBaaNoO1c+d7EG9Wyu5Dfnx8OtX18In/B0wMpkgeKv/UaGeTrH4n3XqMHKVtUlTN6W2upIIceLM3UbMwJTyr92E4VF9EYVZb5agfBMyU/gcGwWMeQnfOs9DbFQQxC6jEluWGVXEUWxUY0tbgzkx+DgJFpjiaLTEGHN0ePcojG7zHGqOhjxqKKYblbTwxUuppg0aCsgjn4DdXk05SYRzYlX0oJICyqkmfJhK4EeKCaOMSvIIpwm1aUi9EQ5pqCSULMoopiet09CWwLtLkYgmjAgiSSSZPJqoJhSLdSOWSCKIQ8NNdx9FLU30Wr85LWhEC5LnY/yxcj6bS5XTd/0UtKpEFBH2comW5KNBmjHRlEq+WoiGHi1TmdQcCIBtViERcDieKp4CUs6nhu5Kdw/KKCG8ZaKEKtVXMDIGfnFd4sL/ERz5Q3XuEeSRW5QTAQ==) format('woff2');}
 @font-face {font-family: 'Inter';font-weight: 200;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
 @font-face {font-family: 'Inter';font-weight: 300;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
 @font-face {font-family: 'Inter';font-weight: 100;font-style: normal;src: url(data:application/font-woff2;charset=utf-8;base64,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) format('woff2');}
@@ -10,14 +10,14 @@
 		Depth:1,
 		Visibility:(()=>{const state0={};return (e)=>Animation.SpeedLimit.bind(state0)(1,(as(e,"Hover").Value?0.5:0.2))})(),
 		BackgroundColor:new Color(0.827,0.827,0.827),
-		Exists:(e)=>(_05E886E7.ScrollY > 100),
+		Exists:(e)=>(_EACFD386.ScrollY > 100),
 		X:(e)=>((e.Parent.Width - e.Width) - 10),
 		Y:(e)=>((e.Parent.Height - e.Height) - 10),
 		Width:64,
 		Height:64,
 	}
 	let v2 = new Button(v1)
-	v2.Script = function(e){_05E886E7.ScrollY = 0}
+	v2.Script = function(e){_EACFD386.ScrollY = 0}
 	let v3 = new Cursor(v1)
 	v3.Reactive =  {
 		Option:"Pointer",
@@ -27,7 +27,7 @@
 	v5.Reactive =  {
 		Radius:(e)=>(as(e,"Block").Width * 0.25),
 	}
-	v1.Modifiers = new Enumerable([v2,v3,v4,v5])
+	v1.Modifiers = [v2,v3,v4,v5]
 	v1.NativeWidth = 24
 	v1.NativeHeight = 24
 	v1.content = document.getElementById("v6")
@@ -51,7 +51,7 @@
 	v16.Reactive =  {
 		Option:"Pointer",
 	}
-	v14.Modifiers = new Enumerable([v15,v16])
+	v14.Modifiers = [v15,v16]
 	v14.NativeWidth = 24
 	v14.NativeHeight = 24
 	v14.content = document.getElementById("v17")
@@ -75,7 +75,7 @@
 	}
 	let v20 = new Button(v18)
 	v20.Script = function(e){console.log("clicked")}
-	v18.Modifiers = new Enumerable([v19,v20])
+	v18.Modifiers = [v19,v20]
 	let v21 = document.getElementById("v21")
 	Block(v21)
 	v21.Reactive =  {
@@ -257,85 +257,66 @@
 	let v46 = document.getElementById("v46")
 	Paragraph(v46)
 	v46.inlineContainer = document.getElementById("v47")
+	let v51 = document.getElementById("v51")
+	SvgIconBlock(v51)
+	v51.Reactive =  {
+		X:(e)=>((e.Parent.Width - e.Width) - 5),
+		Y:5,
+		Height:30,
+	}
+	v51.NativeWidth = 24
+	v51.NativeHeight = 24
+	v51.content = document.getElementById("v52")
 	let v48 = document.getElementById("v48")
 	Paragraph(v48)
 	v48.Reactive =  {
+		FontSize:16,
+		PaddingTop:8,
+		PaddingBottom:8,
+		PaddingRight:50,
 		TextAlignmentHorizontal:"Right",
 		BackgroundColor:new Color(0.576,0.439,0.859),
 		MarginRight:20,
 	}
 	let v49 = new BorderRadius(v48)
 	v49.Reactive =  {
-		RadiusBottomRight:(e)=>(as(e,"Block").Height / 2),
+		RadiusBottomRight:20,
 		RadiusTopRight:(e)=>e.RadiusBottomRight,
 	}
-	v48.Modifiers = new Enumerable([v49])
-	let v51 = document.getElementById("v51")
-	SvgIconInline(v51)
-	v51.Parent = v48
+	v48.Modifiers = [v49]
 	v48.inlineContainer = document.getElementById("v50")
-	let v53 = document.getElementById("v53")
-	Block(v53)
-	v53.Reactive =  {
+	v48.UnmanagedChildrenFirst = v51
+	let v54 = document.getElementById("v54")
+	Block(v54)
+	v54.Reactive =  {
 		MarginTop:75,
 		MarginBottom:75,
 		Height:(x)=>(1 / window.DevicePixelRatio),
 		BackgroundColor:(e)=>e.Parent.HierarchyForegroundColor,
 		Visibility:0.5,
 	}
-	let v52 = document.getElementById("v52")
-	LayoutOverride(v52)
-	v52.Reactive =  {
+	let v53 = document.getElementById("v53")
+	LayoutOverride(v53)
+	v53.Reactive =  {
 		OverrideX:(e)=>Num.First(e.MarginLeft,0),
 		OverrideWidth:(e)=>Num.Sum(e.Parent.Width,-e.Child.Layer.MarginLeft,-e.Child.Layer.MarginRight),
 	}
-	v52.Child = v53
-	let v56 = document.getElementById("v56")
-	Paragraph(v56)
-	v56.Reactive =  {
+	v53.Child = v54
+	let v57 = document.getElementById("v57")
+	Paragraph(v57)
+	v57.Reactive =  {
 		FontSize:(e)=>Num.PiecewiseLinearInterpolation(window.DevicePixelRatio,[1,16],[2,11]),
 	}
-	let v58 = document.getElementById("v58")
-	AbstractInline(v58)
-	v58.Reactive =  {
-		ForegroundColor:new Color(0.639,0.082,0.082),
-	}
-	v58.Parent = v56
-	v56.inlineContainer = document.getElementById("v57")
-	let v54 = document.getElementById("v54")
-	ScrollLayout(v54)
-	v54.Reactive =  {
-		Height:(e)=>Num.Min(e.InternalHeight,(e.Root.Height * 0.8)),
-		BackgroundColor:(e)=>Color.Lerp(e.Parent.HierarchyBackgroundColor,e.Parent.HierarchyForegroundColor,0.02),
-		PaddingLeft:12,
-		PaddingRight:12,
-		PaddingTop:12,
-		PaddingBottom:12,
-	}
-	let v55 = new BorderRadius(v54)
-	v55.Reactive =  {
-		Radius:8,
-	}
-	v54.Modifiers = new Enumerable([v55])
-	v54.Child = v56
 	let v59 = document.getElementById("v59")
-	Paragraph(v59)
-	v59.inlineContainer = document.getElementById("v60")
-	let v63 = document.getElementById("v63")
-	Paragraph(v63)
-	v63.Reactive =  {
-		FontSize:(e)=>Num.PiecewiseLinearInterpolation(window.DevicePixelRatio,[1,16],[2,11]),
-	}
-	let v65 = document.getElementById("v65")
-	AbstractInline(v65)
-	v65.Reactive =  {
+	AbstractInline(v59)
+	v59.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v65.Parent = v63
-	v63.inlineContainer = document.getElementById("v64")
-	let v61 = document.getElementById("v61")
-	ScrollLayout(v61)
-	v61.Reactive =  {
+	v59.Parent = v57
+	v57.inlineContainer = document.getElementById("v58")
+	let v55 = document.getElementById("v55")
+	ScrollLayout(v55)
+	v55.Reactive =  {
 		Height:(e)=>Num.Min(e.InternalHeight,(e.Root.Height * 0.8)),
 		BackgroundColor:(e)=>Color.Lerp(e.Parent.HierarchyBackgroundColor,e.Parent.HierarchyForegroundColor,0.02),
 		PaddingLeft:12,
@@ -343,60 +324,91 @@
 		PaddingTop:12,
 		PaddingBottom:12,
 	}
-	let v62 = new BorderRadius(v61)
-	v62.Reactive =  {
+	let v56 = new BorderRadius(v55)
+	v56.Reactive =  {
 		Radius:8,
 	}
-	v61.Modifiers = new Enumerable([v62])
-	v61.Child = v63
-	let v66 = document.getElementById("v66")
-	Paragraph(v66)
-	v66.inlineContainer = document.getElementById("v67")
-	let v70 = document.getElementById("v70")
-	Paragraph(v70)
-	v70.Reactive =  {
+	v55.Modifiers = [v56]
+	v55.Child = v57
+	let v60 = document.getElementById("v60")
+	Paragraph(v60)
+	v60.inlineContainer = document.getElementById("v61")
+	let v64 = document.getElementById("v64")
+	Paragraph(v64)
+	v64.Reactive =  {
 		FontSize:(e)=>Num.PiecewiseLinearInterpolation(window.DevicePixelRatio,[1,16],[2,11]),
 	}
-	let v72 = document.getElementById("v72")
-	AbstractInline(v72)
-	v72.Reactive =  {
+	let v66 = document.getElementById("v66")
+	AbstractInline(v66)
+	v66.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v72.Parent = v70
+	v66.Parent = v64
+	v64.inlineContainer = document.getElementById("v65")
+	let v62 = document.getElementById("v62")
+	ScrollLayout(v62)
+	v62.Reactive =  {
+		Height:(e)=>Num.Min(e.InternalHeight,(e.Root.Height * 0.8)),
+		BackgroundColor:(e)=>Color.Lerp(e.Parent.HierarchyBackgroundColor,e.Parent.HierarchyForegroundColor,0.02),
+		PaddingLeft:12,
+		PaddingRight:12,
+		PaddingTop:12,
+		PaddingBottom:12,
+	}
+	let v63 = new BorderRadius(v62)
+	v63.Reactive =  {
+		Radius:8,
+	}
+	v62.Modifiers = [v63]
+	v62.Child = v64
+	let v67 = document.getElementById("v67")
+	Paragraph(v67)
+	v67.inlineContainer = document.getElementById("v68")
+	let v71 = document.getElementById("v71")
+	Paragraph(v71)
+	v71.Reactive =  {
+		FontSize:(e)=>Num.PiecewiseLinearInterpolation(window.DevicePixelRatio,[1,16],[2,11]),
+	}
 	let v73 = document.getElementById("v73")
 	AbstractInline(v73)
 	v73.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v73.Parent = v70
+	v73.Parent = v71
 	let v74 = document.getElementById("v74")
 	AbstractInline(v74)
 	v74.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v74.Parent = v70
+	v74.Parent = v71
 	let v75 = document.getElementById("v75")
 	AbstractInline(v75)
 	v75.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v75.Parent = v70
+	v75.Parent = v71
 	let v76 = document.getElementById("v76")
 	AbstractInline(v76)
 	v76.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v76.Parent = v70
+	v76.Parent = v71
 	let v77 = document.getElementById("v77")
 	AbstractInline(v77)
 	v77.Reactive =  {
 		ForegroundColor:new Color(0.639,0.082,0.082),
 	}
-	v77.Parent = v70
-	v70.inlineContainer = document.getElementById("v71")
-	let v68 = document.getElementById("v68")
-	ScrollLayout(v68)
-	v68.Reactive =  {
+	v77.Parent = v71
+	let v78 = document.getElementById("v78")
+	AbstractInline(v78)
+	v78.Reactive =  {
+		ForegroundColor:new Color(0.639,0.082,0.082),
+	}
+	v78.Parent = v71
+	v71.inlineContainer = document.getElementById("v72")
+	let v69 = document.getElementById("v69")
+	ScrollLayout(v69)
+	v69.Reactive =  {
 		Height:(e)=>Num.Min(e.InternalHeight,(e.Root.Height * 0.8)),
 		BackgroundColor:(e)=>Color.Lerp(e.Parent.HierarchyBackgroundColor,e.Parent.HierarchyForegroundColor,0.02),
 		PaddingLeft:12,
@@ -404,137 +416,137 @@
 		PaddingTop:12,
 		PaddingBottom:12,
 	}
-	let v69 = new BorderRadius(v68)
-	v69.Reactive =  {
+	let v70 = new BorderRadius(v69)
+	v70.Reactive =  {
 		Radius:8,
 	}
-	v68.Modifiers = new Enumerable([v69])
-	v68.Child = v70
-	let v78 = document.getElementById("v78")
-	Paragraph(v78)
-	let v80 = document.getElementById("v80")
-	AbstractInline(v80)
-	v80.Parent = v78
+	v69.Modifiers = [v70]
+	v69.Child = v71
+	let v79 = document.getElementById("v79")
+	Paragraph(v79)
 	let v81 = document.getElementById("v81")
 	AbstractInline(v81)
-	v81.Parent = v78
-	v78.inlineContainer = document.getElementById("v79")
-	let v87 = document.getElementById("v87")
-	SvgIconBlock(v87)
-	v87.Reactive =  {
+	v81.Parent = v79
+	let v82 = document.getElementById("v82")
+	AbstractInline(v82)
+	v82.Parent = v79
+	v79.inlineContainer = document.getElementById("v80")
+	let v88 = document.getElementById("v88")
+	SvgIconBlock(v88)
+	v88.Reactive =  {
 		Visibility:(e)=>(as(e.Parent,"Hover").Value?0.25:0.1),
 		Width:35,
 		X:(e)=>(0.5 * (e.Parent.Width - e.Width)),
 		Y:(e)=>(0.5 * (e.Parent.Height - e.Height)),
 	}
-	v87.NativeWidth = 24
-	v87.NativeHeight = 24
-	v87.content = document.getElementById("v88")
-	let v85 = document.getElementById("v85")
-	Block(v85)
-	v85.Reactive =  {
+	v88.NativeWidth = 24
+	v88.NativeHeight = 24
+	v88.content = document.getElementById("v89")
+	let v86 = document.getElementById("v86")
+	Block(v86)
+	v86.Reactive =  {
 		X:(e)=>-e.Width,
 		Width:(e)=>e.Parent.MarginLeft,
 		Height:(e)=>e.Parent.Height,
 	}
-	let v86 = new Hover(v85)
-	v85.Modifiers = new Enumerable([v86])
-	v85.UnmanagedChildrenFirst = v87
-	let v82 = document.getElementById("v82")
-	Paragraph(v82)
-	v82.Reactive =  {
+	let v87 = new Hover(v86)
+	v86.Modifiers = [v87]
+	v86.UnmanagedChildrenFirst = v88
+	let v83 = document.getElementById("v83")
+	Paragraph(v83)
+	v83.Reactive =  {
 		MarginTop:40,
 		FontSize:50,
 		MarginLeft:60,
 	}
-	let v83 = new Id(v82)
-	v83.Reactive =  {
+	let v84 = new Id(v83)
+	v84.Reactive =  {
 		Value:"Alignment",
 	}
-	v82.Modifiers = new Enumerable([v83])
-	v82.inlineContainer = document.getElementById("v84")
-	v82.UnmanagedChildrenFirst = v85
-	let v89 = document.getElementById("v89")
-	Paragraph(v89)
-	v89.Reactive =  {
+	v83.Modifiers = [v84]
+	v83.inlineContainer = document.getElementById("v85")
+	v83.UnmanagedChildrenFirst = v86
+	let v90 = document.getElementById("v90")
+	Paragraph(v90)
+	v90.Reactive =  {
 		TextAlignmentHorizontal:"Right",
 	}
-	v89.inlineContainer = document.getElementById("v90")
-	let v91 = document.getElementById("v91")
-	Paragraph(v91)
-	v91.Reactive =  {
+	v90.inlineContainer = document.getElementById("v91")
+	let v92 = document.getElementById("v92")
+	Paragraph(v92)
+	v92.Reactive =  {
 		TextAlignmentHorizontal:"JustifyIncludingLastLine",
 	}
-	v91.inlineContainer = document.getElementById("v92")
-	let v93 = document.getElementById("v93")
-	Paragraph(v93)
-	v93.inlineContainer = document.getElementById("v94")
-	let v95 = document.getElementById("v95")
-	Paragraph(v95)
-	v95.inlineContainer = document.getElementById("v96")
-	let v97 = document.getElementById("v97")
-	Paragraph(v97)
-	v97.inlineContainer = document.getElementById("v98")
-	let v99 = document.getElementById("v99")
-	Paragraph(v99)
-	v99.inlineContainer = document.getElementById("v100")
-	let v101 = document.getElementById("v101")
-	Paragraph(v101)
-	v101.inlineContainer = document.getElementById("v102")
-	let v108 = document.getElementById("v108")
-	SvgIconBlock(v108)
-	v108.Reactive =  {
+	v92.inlineContainer = document.getElementById("v93")
+	let v94 = document.getElementById("v94")
+	Paragraph(v94)
+	v94.inlineContainer = document.getElementById("v95")
+	let v96 = document.getElementById("v96")
+	Paragraph(v96)
+	v96.inlineContainer = document.getElementById("v97")
+	let v98 = document.getElementById("v98")
+	Paragraph(v98)
+	v98.inlineContainer = document.getElementById("v99")
+	let v100 = document.getElementById("v100")
+	Paragraph(v100)
+	v100.inlineContainer = document.getElementById("v101")
+	let v102 = document.getElementById("v102")
+	Paragraph(v102)
+	v102.inlineContainer = document.getElementById("v103")
+	let v109 = document.getElementById("v109")
+	SvgIconBlock(v109)
+	v109.Reactive =  {
 		Visibility:(e)=>(as(e.Parent,"Hover").Value?0.25:0.1),
 		Width:35,
 		X:(e)=>(0.5 * (e.Parent.Width - e.Width)),
 		Y:(e)=>(0.5 * (e.Parent.Height - e.Height)),
 	}
-	v108.NativeWidth = 24
-	v108.NativeHeight = 24
-	v108.content = document.getElementById("v109")
-	let v106 = document.getElementById("v106")
-	Block(v106)
-	v106.Reactive =  {
+	v109.NativeWidth = 24
+	v109.NativeHeight = 24
+	v109.content = document.getElementById("v110")
+	let v107 = document.getElementById("v107")
+	Block(v107)
+	v107.Reactive =  {
 		X:(e)=>-e.Width,
 		Width:(e)=>e.Parent.MarginLeft,
 		Height:(e)=>e.Parent.Height,
 	}
-	let v107 = new Hover(v106)
-	v106.Modifiers = new Enumerable([v107])
-	v106.UnmanagedChildrenFirst = v108
-	let v103 = document.getElementById("v103")
-	Paragraph(v103)
-	v103.Reactive =  {
+	let v108 = new Hover(v107)
+	v107.Modifiers = [v108]
+	v107.UnmanagedChildrenFirst = v109
+	let v104 = document.getElementById("v104")
+	Paragraph(v104)
+	v104.Reactive =  {
 		MarginTop:40,
 		FontSize:50,
 		MarginLeft:60,
 	}
-	let v104 = new Id(v103)
-	v104.Reactive =  {
+	let v105 = new Id(v104)
+	v105.Reactive =  {
 		Value:"Background",
 	}
-	v103.Modifiers = new Enumerable([v104])
-	v103.inlineContainer = document.getElementById("v105")
-	v103.UnmanagedChildrenFirst = v106
-	let v110 = document.getElementById("v110")
-	Paragraph(v110)
-	v110.Reactive =  {
+	v104.Modifiers = [v105]
+	v104.inlineContainer = document.getElementById("v106")
+	v104.UnmanagedChildrenFirst = v107
+	let v111 = document.getElementById("v111")
+	Paragraph(v111)
+	v111.Reactive =  {
 		BackgroundColor:new Color(0.541,0.169,0.886),
 	}
-	v110.inlineContainer = document.getElementById("v111")
-	let v112 = document.getElementById("v112")
-	Paragraph(v112)
-	v112.Reactive =  {
+	v111.inlineContainer = document.getElementById("v112")
+	let v113 = document.getElementById("v113")
+	Paragraph(v113)
+	v113.Reactive =  {
 		BackgroundColor:new Color(0.502,0,0.502),
 		PaddingLeft:30,
 		PaddingRight:30,
 		PaddingTop:30,
 		PaddingBottom:30,
 	}
-	v112.inlineContainer = document.getElementById("v113")
-	let v114 = document.getElementById("v114")
-	Paragraph(v114)
-	v114.Reactive =  {
+	v113.inlineContainer = document.getElementById("v114")
+	let v115 = document.getElementById("v115")
+	Paragraph(v115)
+	v115.Reactive =  {
 		FontSize:50,
 		BackgroundColor:new Color(1,0.078,0.576),
 		PaddingLeft:20,
@@ -542,10 +554,10 @@
 		PaddingTop:20,
 		PaddingBottom:20,
 	}
-	v114.inlineContainer = document.getElementById("v115")
-	let v116 = document.getElementById("v116")
-	Paragraph(v116)
-	v116.Reactive =  {
+	v115.inlineContainer = document.getElementById("v116")
+	let v117 = document.getElementById("v117")
+	Paragraph(v117)
+	v117.Reactive =  {
 		FontSize:50,
 		BackgroundColor:new Color(1,0.714,0.757),
 		PaddingLeft:300,
@@ -553,40 +565,40 @@
 		PaddingTop:10,
 		PaddingBottom:10,
 	}
-	v116.inlineContainer = document.getElementById("v117")
-	let v118 = document.getElementById("v118")
-	Paragraph(v118)
-	v118.Reactive =  {
+	v117.inlineContainer = document.getElementById("v118")
+	let v119 = document.getElementById("v119")
+	Paragraph(v119)
+	v119.Reactive =  {
 		BackgroundColor:new Color(0.4,0.2,0.6),
 		X:(e)=>Num.First(e.MarginLeft,0),
 		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
 	}
-	v118.inlineContainer = document.getElementById("v119")
-	let v120 = document.getElementById("v120")
-	Paragraph(v120)
-	v120.Reactive =  {
+	v119.inlineContainer = document.getElementById("v120")
+	let v121 = document.getElementById("v121")
+	Paragraph(v121)
+	v121.Reactive =  {
 		BackgroundColor:new Color(0.576,0.439,0.859),
 		X:(e)=>Num.First(e.MarginLeft,0),
 		Width:(e)=>Num.Sum(e.Parent.Width,-e.MarginLeft,-e.MarginRight),
 		PaddingLeft:(e)=>e.Parent.PaddingLeft,
 		PaddingRight:(e)=>e.Parent.PaddingRight,
 	}
-	v120.inlineContainer = document.getElementById("v121")
-	let v123 = document.getElementById("v123")
-	Paragraph(v123)
-	v123.Reactive =  {
+	v121.inlineContainer = document.getElementById("v122")
+	let v124 = document.getElementById("v124")
+	Paragraph(v124)
+	v124.Reactive =  {
 		PaddingLeft:(e)=>Num.Max(e.Parent.Parent.PaddingLeft,10),
 		PaddingRight:(e)=>Num.Max(e.Parent.Parent.PaddingRight,10),
 		BackgroundColor:new Color(0.541,0.169,0.886),
 	}
-	v123.inlineContainer = document.getElementById("v124")
-	let v122 = document.getElementById("v122")
-	LayoutOverride(v122)
-	v122.Reactive =  {
+	v124.inlineContainer = document.getElementById("v125")
+	let v123 = document.getElementById("v123")
+	LayoutOverride(v123)
+	v123.Reactive =  {
 		OverrideX:0,
 		OverrideWidth:(e)=>e.Parent.Width,
 	}
-	v122.Child = v123
+	v123.Child = v124
 	let v10 = document.getElementById("v10")
 	LinearLayout(v10)
 	v10.Reactive =  {
@@ -597,44 +609,44 @@
 	v11.NextSibling = v44
 	v44.NextSibling = v46
 	v46.NextSibling = v48
-	v48.NextSibling = v52
-	v52.NextSibling = v54
-	v54.NextSibling = v59
-	v59.NextSibling = v61
-	v61.NextSibling = v66
-	v66.NextSibling = v68
-	v68.NextSibling = v78
-	v78.NextSibling = v82
-	v82.NextSibling = v89
-	v89.NextSibling = v91
-	v91.NextSibling = v93
-	v93.NextSibling = v95
-	v95.NextSibling = v97
-	v97.NextSibling = v99
-	v99.NextSibling = v101
-	v101.NextSibling = v103
-	v103.NextSibling = v110
-	v110.NextSibling = v112
-	v112.NextSibling = v114
-	v114.NextSibling = v116
-	v116.NextSibling = v118
-	v118.NextSibling = v120
-	v120.NextSibling = v122
+	v48.NextSibling = v53
+	v53.NextSibling = v55
+	v55.NextSibling = v60
+	v60.NextSibling = v62
+	v62.NextSibling = v67
+	v67.NextSibling = v69
+	v69.NextSibling = v79
+	v79.NextSibling = v83
+	v83.NextSibling = v90
+	v90.NextSibling = v92
+	v92.NextSibling = v94
+	v94.NextSibling = v96
+	v96.NextSibling = v98
+	v98.NextSibling = v100
+	v100.NextSibling = v102
+	v102.NextSibling = v104
+	v104.NextSibling = v111
+	v111.NextSibling = v113
+	v113.NextSibling = v115
+	v115.NextSibling = v117
+	v117.NextSibling = v119
+	v119.NextSibling = v121
+	v121.NextSibling = v123
+	let v127 = document.getElementById("v127")
+	Paragraph(v127)
+	let v129 = document.getElementById("v129")
+	AbstractInline(v129)
+	v129.Parent = v127
+	v127.inlineContainer = document.getElementById("v128")
 	let v126 = document.getElementById("v126")
-	Paragraph(v126)
-	let v128 = document.getElementById("v128")
-	AbstractInline(v128)
-	v128.Parent = v126
-	v126.inlineContainer = document.getElementById("v127")
-	let v125 = document.getElementById("v125")
-	LinearLayout(v125)
-	v125.Reactive =  {
+	LinearLayout(v126)
+	v126.Reactive =  {
 		FontSize:14,
 		PaddingLeft:(e)=>(Num.Max((e.Parent.Width - 1080),0) / 2),
 		PaddingRight:(e)=>(Num.Max((e.Parent.Width - 1080),0) / 2),
 		BackgroundColor:new Color(0.9,0.9,0.9),
 	}
-	v125.ChildrenFirst = v126
+	v126.ChildrenFirst = v127
 	let v9 = document.getElementById("v9")
 	LinearLayout(v9)
 	v9.Reactive =  {
@@ -644,23 +656,23 @@
 		Gap:50,
 	}
 	v9.ChildrenFirst = v10
-	v10.NextSibling = v125
+	v10.NextSibling = v126
 	let v7 = document.getElementById("v7")
-	let _05E886E7 = v7
+	let _EACFD386 = v7
 	ScrollLayout(v7)
 	v7.Reactive =  {
 		Width:(e)=>e.Parent.Width,
 		Height:(e)=>e.Parent.Height,
-		ScrollY:(e)=>_7F5BA90B.StoredValue,
+		ScrollY:(e)=>_B345E0CE.StoredValue,
 	}
 	let v8 = new SessionStorage(v7)
-	let _7F5BA90B = v8
+	let _B345E0CE = v8
 	v8.Reactive =  {
-		ValueToStore:(e)=>_05E886E7.ScrollY,
+		ValueToStore:(e)=>as(e,"ScrollLayout").ScrollY,
 	}
 	v8.name = "MainScroll_Components-ParagraphComponent"
 	v8.StoredValue = Number(sessionStorage.getItem("MainScroll_Components-ParagraphComponent") || 0) || 0
-	v7.Modifiers = new Enumerable([v8])
+	v7.Modifiers = [v8]
 	v7.Child = v9
 	let v0 = document.getElementById("v0")
 	Page(v0)
@@ -695,40 +707,40 @@
 </p></paragraph><paragraph id="v41"><p id="v42" class="inline-container"><a id="v43" href="ru" target="_self">Ru</a>
 </p></paragraph></linear-layout></menu-responsive><paragraph id="v44" style="font-weight:100;"><p id="v45" class="inline-container">Paragraph Component
 </p></paragraph><paragraph id="v46"><p id="v47" class="inline-container">Paragraph is a Block of text and other Inlines
-</p></paragraph><a id="v48" href="https://github.com/StaticSharp/StaticSharp/tree/main/StaticSharpDemo/Root/Components/ParagraphComponent/En.cs" target="_self"><p id="v50" class="inline-container">Посмотрите исходный код этой страницы на Github<svg-icon-inline id="v51" style="margin:0em 0em 0em 0.5em;display:inline-block;width:1.5em;height:1em;transform:scale(1,1.5) translate(0, 25%);transform-origin:bottom;"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:block;position:relative;transform:scale(1, 0.6666666666666666);transform-origin:top;"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg></svg></svg-icon-inline>
-</p></a><layout-override id="v52"><block id="v53"></block></layout-override><scroll-layout id="v54"><paragraph id="v56" style="font-family:Roboto Mono;font-weight:400;"><p id="v57" class="inline-container"><inline id="v58">"Single line paragraph"</inline>,
-</p></paragraph></scroll-layout><paragraph id="v59"><p id="v60" class="inline-container">Single line paragraph
-</p></paragraph><scroll-layout id="v61"><paragraph id="v63" style="font-family:Roboto Mono;font-weight:400;"><p id="v64" class="inline-container"><inline id="v65">"""
+</p></paragraph><a id="v48" href="https://github.com/StaticSharp/StaticSharp/tree/main/StaticSharpDemo/Root/Components/ParagraphComponent/En.cs" target="_self" style="line-height:1.5;"><p id="v50" class="inline-container">Посмотрите исходный код этой страницы на Github
+</p><svg-icon-block id="v51"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" id="v52"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg></svg-icon-block></a><layout-override id="v53"><block id="v54"></block></layout-override><scroll-layout id="v55"><paragraph id="v57" style="font-family:Roboto Mono;font-weight:400;"><p id="v58" class="inline-container"><inline id="v59">"Single line paragraph"</inline>,
+</p></paragraph></scroll-layout><paragraph id="v60"><p id="v61" class="inline-container">Single line paragraph
+</p></paragraph><scroll-layout id="v62"><paragraph id="v64" style="font-family:Roboto Mono;font-weight:400;"><p id="v65" class="inline-container"><inline id="v66">"""
 Multiline
 paragraph
 """</inline>,
-</p></paragraph></scroll-layout><paragraph id="v66"><p id="v67" class="inline-container">Multiline
+</p></paragraph></scroll-layout><paragraph id="v67"><p id="v68" class="inline-container">Multiline
 paragraph
-</p></paragraph><scroll-layout id="v68"><paragraph id="v70" style="font-family:Roboto Mono;font-weight:400;"><p id="v71" class="inline-container"><inline id="v72">$"</inline><inline id="v73">Use interpolated strings to insert </inline>{Node.Root:<inline id="v74">link</inline>}<inline id="v75"> or </inline>{Bold(<inline id="v76">"styled text"</inline>)}<inline id="v77">"</inline>,
-</p></paragraph></scroll-layout><paragraph id="v78"><p id="v79" class="inline-container">Use interpolated strings to insert <a id="v80" href="../../ru" target="_self">link</a> or <inline id="v81" style="font-weight:700;">styled text</inline>
-</p></paragraph><paragraph id="v82" style="font-weight:200;"><p id="v84" class="inline-container">Alignment
-</p><a id="v85" href="#Alignment" target="_self"><svg-icon-block id="v87"><svg xmlns="http://www.w3.org/2000/svg" id="v88" viewBox="0 0 24 24"><path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" /></svg></svg-icon-block></a></paragraph><paragraph id="v89"><p id="v90" class="inline-container">Multi
+</p></paragraph><scroll-layout id="v69"><paragraph id="v71" style="font-family:Roboto Mono;font-weight:400;"><p id="v72" class="inline-container"><inline id="v73">$"</inline><inline id="v74">Use interpolated strings to insert </inline>{Node.Root:<inline id="v75">link</inline>}<inline id="v76"> or </inline>{Bold(<inline id="v77">"styled text"</inline>)}<inline id="v78">"</inline>,
+</p></paragraph></scroll-layout><paragraph id="v79"><p id="v80" class="inline-container">Use interpolated strings to insert <a id="v81" href="../../ru" target="_self">link</a> or <inline id="v82" style="font-weight:700;">styled text</inline>
+</p></paragraph><paragraph id="v83" style="font-weight:200;"><p id="v85" class="inline-container">Alignment
+</p><a id="v86" href="#Alignment" target="_self"><svg-icon-block id="v88"><svg xmlns="http://www.w3.org/2000/svg" id="v89" viewBox="0 0 24 24"><path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" /></svg></svg-icon-block></a></paragraph><paragraph id="v90"><p id="v91" class="inline-container">Multi
 line
 paragraph
 aligned to the right
-</p></paragraph><paragraph id="v91"><p id="v92" class="inline-container">Text justification
+</p></paragraph><paragraph id="v92"><p id="v93" class="inline-container">Text justification
 including last line
-</p></paragraph><paragraph id="v93"><p id="v94" class="inline-container">Multiple spaces |        | 8 spaces
-</p></paragraph><paragraph id="v95"><p id="v96" class="inline-container">Long single line paragraph, that should wrap. Long single line paragraph, that should wrap. Long single line paragraph, that should wrap.
-</p></paragraph><paragraph id="v97"><p id="v98" class="inline-container">    Line starting with 4 spaces
-</p></paragraph><paragraph id="v99"><p id="v100" class="inline-container">	Line starting with tab (tab = 4 spaces)
-</p></paragraph><paragraph id="v101"><p id="v102" class="inline-container">Long paragraph separated by tabs	Long paragraph separated by tabs	Long paragraph separated by tabs	Long paragraph separated by tabs	Long paragraph separated by tabs	
-</p></paragraph><paragraph id="v103" style="font-weight:200;"><p id="v105" class="inline-container">Background
-</p><a id="v106" href="#Background" target="_self"><svg-icon-block id="v108"><svg xmlns="http://www.w3.org/2000/svg" id="v109" viewBox="0 0 24 24"><path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" /></svg></svg-icon-block></a></paragraph><paragraph id="v110"><p id="v111" class="inline-container">If background color is set, margins are replaced by paddings.
+</p></paragraph><paragraph id="v94"><p id="v95" class="inline-container">Multiple spaces |        | 8 spaces
+</p></paragraph><paragraph id="v96"><p id="v97" class="inline-container">Long single line paragraph, that should wrap. Long single line paragraph, that should wrap. Long single line paragraph, that should wrap.
+</p></paragraph><paragraph id="v98"><p id="v99" class="inline-container">    Line starting with 4 spaces
+</p></paragraph><paragraph id="v100"><p id="v101" class="inline-container">	Line starting with tab (tab = 4 spaces)
+</p></paragraph><paragraph id="v102"><p id="v103" class="inline-container">Long paragraph separated by tabs	Long paragraph separated by tabs	Long paragraph separated by tabs	Long paragraph separated by tabs	Long paragraph separated by tabs	
+</p></paragraph><paragraph id="v104" style="font-weight:200;"><p id="v106" class="inline-container">Background
+</p><a id="v107" href="#Background" target="_self"><svg-icon-block id="v109"><svg xmlns="http://www.w3.org/2000/svg" id="v110" viewBox="0 0 24 24"><path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" /></svg></svg-icon-block></a></paragraph><paragraph id="v111"><p id="v112" class="inline-container">If background color is set, margins are replaced by paddings.
 Default buinding for MarginLeft is (element.BackgroundColor != undefined) ? 0 : 10,
 Default buinding for PaddingLeft is (element.BackgroundColor != undefined) ? 10 : undefined
-</p></paragraph><paragraph id="v112"><p id="v113" class="inline-container">Paddings = 30
-</p></paragraph><paragraph id="v114"><p id="v115" class="inline-container">LongWordScaling_LongWordScaling_LongWordScaling
-</p></paragraph><paragraph id="v116"><p id="v117" class="inline-container">Huge_paddings
-</p></paragraph><paragraph id="v118"><p id="v119" class="inline-container">.FillWidth()
-</p></paragraph><paragraph id="v120"><p id="v121" class="inline-container">.FillWidth().InheritHorizontalPaddings()
-</p></paragraph><layout-override id="v122"><paragraph id="v123"><p id="v124" class="inline-container">PaddingLeft = new(e=>Js.Num.Max(e.Parent.PaddingLeft, 20)),
+</p></paragraph><paragraph id="v113"><p id="v114" class="inline-container">Paddings = 30
+</p></paragraph><paragraph id="v115"><p id="v116" class="inline-container">LongWordScaling_LongWordScaling_LongWordScaling
+</p></paragraph><paragraph id="v117"><p id="v118" class="inline-container">Huge_paddings
+</p></paragraph><paragraph id="v119"><p id="v120" class="inline-container">.FillWidth()
+</p></paragraph><paragraph id="v121"><p id="v122" class="inline-container">.FillWidth().InheritHorizontalPaddings()
+</p></paragraph><layout-override id="v123"><paragraph id="v124"><p id="v125" class="inline-container">PaddingLeft = new(e=>Js.Num.Max(e.Parent.PaddingLeft, 20)),
 PaddingRight = new(e=>Js.Num.Max(e.Parent.PaddingRight, 20)),
 Resize to see difference with previous
-</p></paragraph></layout-override></linear-layout><linear-layout id="v125"><paragraph id="v126"><p id="v127" class="inline-container">This website has been created using <a id="v128" href="../../ru" target="_self">StaticSharp</a>
+</p></paragraph></layout-override></linear-layout><linear-layout id="v126"><paragraph id="v127"><p id="v128" class="inline-container">This website has been created using <a id="v129" href="../../ru" target="_self">StaticSharp</a>
 </p></paragraph></linear-layout></linear-layout></scroll-layout><extras id="extras"></extras></body></html>
